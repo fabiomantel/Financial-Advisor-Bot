@@ -166,6 +166,28 @@ Handles incoming WhatsApp webhooks from Twilio.
 3. Update documentation for API changes
 4. Use the storage abstraction for any persistence needs
 
+## Secure Redis Connection (TLS/SSL)
+
+This project supports secure connections to Redis using TLS/SSL. To enable a secure connection, use a `rediss://` URL in your `.env` file and optionally provide CA, cert, and key files if required by your Redis provider.
+
+### Example `.env` settings for secure Redis:
+
+```
+REDIS_URL=rediss://your-redis-host:port
+# Optional for custom CA/cert/key:
+REDIS_TLS_CA=./path/to/ca.pem
+REDIS_TLS_CERT=./path/to/client-cert.pem
+REDIS_TLS_KEY=./path/to/client-key.pem
+# Allow self-signed certs (not recommended for production):
+REDIS_TLS_REJECT_UNAUTHORIZED=false
+```
+
+- If your Redis provider (e.g., Redis Cloud, AWS ElastiCache, Upstash) provides a `rediss://` URL, just set `REDIS_URL` accordingly.
+- If you need to provide a custom CA, client certificate, or key, set the corresponding environment variables to the file paths.
+- By default, the client will reject unauthorized/self-signed certificates. Set `REDIS_TLS_REJECT_UNAUTHORIZED=false` only for development/testing.
+
+**Logs will indicate whether a secure Redis connection is being used.**
+
 ## License
 
 MIT License - see LICENSE file for details. 

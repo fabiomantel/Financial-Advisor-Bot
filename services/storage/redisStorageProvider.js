@@ -1,13 +1,38 @@
 const redis = require('redis');
+const fs = require('fs');
 const logger = require('../../utils/logger');
 
 class RedisStorageProvider {
   constructor(config) {
+    // TLS options if provided
+    let socketOptions = {};
+    let usingTLS = false;
+    if (config.REDIS_URL && config.REDIS_URL.startsWith('rediss://')) {
+      usingTLS = true;
+      socketOptions.tls = true;
+      // Optionally add CA, cert, key if provided
+      if (config.REDIS_TLS_CA) {
+        socketOptions.ca = fs.readFileSync(config.REDIS_TLS_CA);
+      }
+      if (config.REDIS_TLS_CERT) {
+        socketOptions.cert = fs.readFileSync(config.REDIS_TLS_CERT);
+      }
+      if (config.REDIS_TLS_KEY) {
+        socketOptions.key = fs.readFileSync(config.REDIS_TLS_KEY);
+      }
+      // Optionally allow self-signed
+      if (config.REDIS_TLS_REJECT_UNAUTHORIZED === 'false') {
+        socketOptions.rejectUnauthorized = false;
+      }
+    } else {
+      // Fallback to previous config
+      socketOptions.rejectUnauthorized = false;
+    }
+
+    logger.info(`Creating Redis client. Secure TLS: ${usingTLS}`);
     this.client = redis.createClient({ 
       url: config.REDIS_URL,
-      socket: {
-        rejectUnauthorized: false
-      }
+      socket: socketOptions
     });
     
     this.setupEventHandlers();
