@@ -1,15 +1,12 @@
 const axios = require('axios');
 const config = require('../config/config');
 
-async function getGptReply(userMessage) {
+async function getGptReply(messages) {
   const response = await axios.post(
     config.OPENAI_API_URL,
     {
       model: config.MODEL,
-      messages: [
-        { role: 'system', content: config.SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
+      messages: messages,
     },
     {
       headers: {

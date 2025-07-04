@@ -16,4 +16,6 @@ module.exports = {
     body: 'Body',
     from: 'From',
   },
+  REDIS_URL: process.env.REDIS_URL,
+  STORAGE_TYPE: process.env.STORAGE_TYPE || 'redis',
 }; 
