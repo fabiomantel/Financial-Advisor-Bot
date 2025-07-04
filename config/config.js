@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config()
 
 module.exports = {
   PORT: process.env.PORT || 3000,
@@ -14,8 +14,8 @@ module.exports = {
   MODEL: 'gpt-4o',
   INPUT_KEYS: {
     body: 'Body',
-    from: 'From',
+    from: 'From'
   },
   REDIS_URL: process.env.REDIS_URL,
-  STORAGE_TYPE: process.env.STORAGE_TYPE || 'redis',
-}; 
+  STORAGE_TYPE: process.env.STORAGE_TYPE || 'redis'
+}

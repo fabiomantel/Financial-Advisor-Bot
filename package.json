@@ -8,7 +8,16 @@
     "dev": "nodemon index.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "docker:build": "docker build -t financial-advisor-bot .",
+    "docker:run": "docker run -p 3000:3000 financial-advisor-bot",
+    "docker:compose": "docker-compose up -d",
+    "docker:compose:down": "docker-compose down",
+    "docker:compose:logs": "docker-compose logs -f",
+    "security:audit": "npm audit",
+    "security:fix": "npm audit fix"
   },
   "dependencies": {
     "axios": "^1.10.0",
@@ -18,8 +27,14 @@
     "redis": "^5.5.6"
   },
   "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.1.1",
     "express-validator": "^7.2.1",
     "jest": "^30.0.4",
+    "nodemon": "^3.1.0",
     "supertest": "^7.1.1",
     "winston": "^3.17.0"
   },
@@ -30,6 +45,33 @@
       "services/**/*.js",
       "utils/**/*.js"
     ],
-    "coverageDirectory": "coverage"
-  }
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov", "html"]
+  },
+  "eslintConfig": {
+    "extends": "standard",
+    "env": {
+      "node": true,
+      "jest": true
+    },
+    "rules": {
+      "no-console": "warn",
+      "prefer-const": "error"
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "openai",
+    "gpt",
+    "redis",
+    "financial",
+    "advisor"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }

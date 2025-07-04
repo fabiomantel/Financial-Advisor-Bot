@@ -188,6 +188,164 @@ REDIS_TLS_REJECT_UNAUTHORIZED=false
 
 **Logs will indicate whether a secure Redis connection is being used.**
 
+## Deployment & CI/CD
+
+This project includes a complete CI/CD pipeline with Docker containerization and GitHub Actions automation.
+
+### 🐳 Docker Deployment
+
+#### Local Development with Docker Compose
+
+```bash
+# Start the entire stack (app + Redis)
+npm run docker:compose
+
+# View logs
+npm run docker:compose:logs
+
+# Stop the stack
+npm run docker:compose:down
+```
+
+#### Production Docker Build
+
+```bash
+# Build the Docker image
+npm run docker:build
+
+# Run the container
+npm run docker:run
+```
+
+### 🔄 CI/CD Pipeline
+
+The project uses GitHub Actions for automated testing, building, and deployment:
+
+1. **Test & Lint**: Runs on every push and PR
+   - Unit tests with Jest
+   - ESLint code quality checks
+   - Security audits with npm audit
+
+2. **Build & Push**: Creates Docker images on main branch
+   - Multi-stage Docker build
+   - Pushes to GitHub Container Registry
+   - Includes proper tagging and caching
+
+3. **Deploy**: Automatic deployment to staging/production
+   - Staging: Deploys on main branch pushes
+   - Production: Manual approval required
+
+### 🔐 Environment Configuration
+
+#### Development
+```bash
+# Copy development config
+cp env.development .env
+
+# Edit with your local settings
+nano .env
+```
+
+#### Production
+Set these GitHub Secrets in your repository:
+
+**Required Secrets:**
+- `OPENAI_API_KEY`: Your OpenAI API key
+- `TWILIO_ACCOUNT_SID`: Your Twilio Account SID
+- `TWILIO_AUTH_TOKEN`: Your Twilio Auth Token
+- `REDIS_URL`: Your production Redis URL (use `rediss://` for secure connections)
+
+**Optional Secrets (for secure Redis):**
+- `REDIS_TLS_CA`: Path to CA certificate file
+- `REDIS_TLS_CERT`: Path to client certificate file
+- `REDIS_TLS_KEY`: Path to client key file
+- `REDIS_TLS_REJECT_UNAUTHORIZED`: Set to "false" for self-signed certs
+
+### 🚀 Deployment Options
+
+#### Option 1: Docker Compose (Recommended for VPS)
+```bash
+# On your server
+git clone <your-repo>
+cd Financial-Advisor-Bot
+cp env.production .env
+# Edit .env with production values
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+#### Option 2: Kubernetes
+```bash
+# Apply Kubernetes manifests
+kubectl apply -f k8s/
+```
+
+#### Option 3: Cloud Platforms
+- **Heroku**: Use the included `Procfile`
+- **AWS ECS**: Use the Docker image from GitHub Container Registry
+- **Google Cloud Run**: Deploy the container directly
+- **DigitalOcean App Platform**: Connect your GitHub repo
+
+### 📊 Monitoring & Health Checks
+
+The application includes built-in health checks:
+
+```bash
+# Check application health
+curl http://localhost:3000/health
+
+# Docker health check
+docker inspect <container-id> | grep Health -A 10
+```
+
+### 🔧 Development Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Run linting
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+
+# Security audit
+npm run security:audit
+
+# Fix security issues
+npm run security:fix
+
+# Development with hot reload
+npm run dev
+
+# Production start
+npm start
+```
+
+### 🛡️ Security Best Practices
+
+1. **Environment Variables**: Never commit secrets to the repository
+2. **Docker Security**: Runs as non-root user
+3. **TLS/SSL**: Use secure Redis connections in production
+4. **Dependency Scanning**: Automated security audits in CI/CD
+5. **Health Checks**: Built-in monitoring for container health
+
+### 📝 Environment Variables Reference
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `NODE_ENV` | Environment (development/production) | Yes | `development` |
+| `PORT` | Application port | No | `3000` |
+| `OPENAI_API_KEY` | OpenAI API key | Yes | - |
+| `TWILIO_ACCOUNT_SID` | Twilio Account SID | Yes | - |
+| `TWILIO_AUTH_TOKEN` | Twilio Auth Token | Yes | - |
+| `REDIS_URL` | Redis connection URL | Yes | - |
+| `STORAGE_TYPE` | Storage provider type | No | `redis` |
+| `LOG_LEVEL` | Logging level | No | `info` |
+
 ## License
 
 MIT License - see LICENSE file for details. 
