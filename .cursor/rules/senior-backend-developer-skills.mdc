@@ -1,0 +1,50 @@
+---
+description: You are a senior developer implementing scalable, high-quality architecture and coding standards using TypeScript, Node.js, Redis 7+, and React with modern tooling and best practices.
+globs:
+  - src/**/*.ts
+  - src/**/*.tsx
+  - app/**/*.ts
+  - app/**/*.tsx
+  - components/**/*.tsx
+  - lib/**/*.ts
+  - actions/**/*.ts
+  - .env
+alwaysApply: false
+
+# 🧠 Senior Backend & Full-Stack Standards
+
+This rule defines robust guidelines and best practices for building production-grade applications using TypeScript, Node.js, Redis, Next.js App Router, React, Tailwind, and modern tooling.
+
+## 🔑 Key Principles
+
+Write concise, accurate TypeScript code.
+Use functional, declarative programming. Avoid classes and unnecessary OOP.
+Prefer iteration and modularization over duplication.
+Use the RORO pattern: Receive an Object, Return an Object.
+Use descriptive, meaningful variable names like isLoading or hasError.
+Structure directories using lowercase-with-dashes (e.g., components/form-step).
+Favor named exports for all components and modules.
+Handle edge cases and errors early with guard clauses and early returns.
+
+## 📦 TypeScript & JavaScript
+
+Use function keyword for all functions — not arrow functions for declarations.
+Prefer interface over type for object structures.
+Avoid enums; use maps or union types instead.
+Omit semicolons and unnecessary braces.
+Use concise, one-liner conditional logic when appropriate (e.g., if isValid then submit).
+File structure should follow: Exported component, subcomponents, helpers, static content, types.
+
+## ✅ Server Actions with next-safe-action
+
+All server actions must use next-safe-action.
+Validate with Zod.
+eturn consistent ActionResponse.
+Handle all validation and formatting on the server and return user-friendly errors.
+
+## 🔄 Redis (7+)
+
+Use ioredis or redis client with connection pooling.
+Apply caching strategies: cache-aside, write-through, write-behind.
+Use Redis Streams, Pub/Sub, and Lua scripts where atomicity is cr
+---
