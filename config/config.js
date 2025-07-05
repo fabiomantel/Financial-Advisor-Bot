@@ -1,4 +1,5 @@
 require('dotenv').config()
+const hebrew = require('./hebrew')
 
 module.exports = {
   PORT: process.env.PORT || 3000,
@@ -8,9 +9,9 @@ module.exports = {
   TWILIO_WHATSAPP_NUMBER: 'whatsapp:+14155238886',
   OPENAI_API_URL: 'https://api.openai.com/v1/chat/completions',
   TWILIO_API_URL: (sid) => `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
-  SYSTEM_PROMPT: 'אתה יועץ פיננסי מנוסה המתמחה בהשקעות, מיסוי בישראל וניהול הון משפחתי.',
-  INSTANT_REPLY: '🔍 צולל לתוך התוכנית שלנו ושלף את התובנות הרלוונטיות – תשובה מותאמת בדרך ✨',
-  ERROR_REPLY: '😕 אופס! משהו השתבש – נסה שוב עוד רגע, אני כאן בשבילך.',
+  SYSTEM_PROMPT: hebrew.SYSTEM_PROMPT,
+  INSTANT_REPLY: hebrew.INSTANT_REPLY,
+  ERROR_REPLY: hebrew.ERROR_REPLY,
   MODEL: 'gpt-4o',
   INPUT_KEYS: {
     body: 'Body',

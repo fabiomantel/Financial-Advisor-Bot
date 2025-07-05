@@ -50,10 +50,10 @@ async function sendMessage ({ to, body }) {
         }
       )
     }
-    return
+    return { success: true }
   }
   // If body is within limit, send as usual
-  return axios.post(
+  await axios.post(
     config.TWILIO_API_URL(config.TWILIO_ACCOUNT_SID),
     new URLSearchParams({
       To: to,
@@ -67,6 +67,7 @@ async function sendMessage ({ to, body }) {
       }
     }
   )
+  return { success: true }
 }
 
 module.exports = { sendMessage, splitMessageOnWordBoundary }
