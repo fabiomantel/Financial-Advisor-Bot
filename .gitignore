@@ -61,3 +61,6 @@ yarn-error.log*
 
 # Yarn Integrity file
 yarn.lock 
+
+# Package lock file
+package-lock.json

@@ -6,7 +6,7 @@ module.exports = {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
-  TWILIO_WHATSAPP_NUMBER: 'whatsapp:+14155238886',
+  TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER,
   OPENAI_API_URL: 'https://api.openai.com/v1/chat/completions',
   TWILIO_API_URL: (sid) => `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
   SYSTEM_PROMPT: hebrew.SYSTEM_PROMPT,
