@@ -17,7 +17,8 @@
     "docker:compose:down": "docker-compose down",
     "docker:compose:logs": "docker-compose logs -f",
     "security:audit": "npm audit",
-    "security:fix": "npm audit fix"
+    "security:fix": "npm audit fix",
+    "postinstall": "npm audit --audit-level=moderate"
   },
   "dependencies": {
     "axios": "^1.10.0",
@@ -73,5 +74,8 @@
     "advisor"
   ],
   "author": "Your Name",
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  }
 }
