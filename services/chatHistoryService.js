@@ -1,112 +1,141 @@
 const logger = require('../utils/logger')
+const StorageFactory = require('./storage')
 
 class ChatHistoryService {
-  constructor (storageProvider) {
-    this.storage = storageProvider
-    logger.info('ChatHistoryService initialized with storage provider')
+  constructor(storageProvider) {
+    this.storageProvider = storageProvider
+    this.maxHistoryLength = 20
+    logger.info(`ChatHistoryService initialized with storage type: ${storageProvider.constructor.name}`)
   }
 
-  async getUserHistory (userId) {
+  async getUserHistory(userId) {
     try {
-      logger.info(`Retrieving chat history for user: ${userId}`)
-      const historyStr = await this.storage.get(userId)
-      if (historyStr) {
-        const history = JSON.parse(historyStr)
-        logger.info(`Retrieved chat history for user ${userId}: ${history.length} messages`)
-        return history
-      } else {
-        logger.info(`No existing chat history found for user: ${userId}`)
-        return []
+      const history = await this.storageProvider.get(`chat_history:${userId}`)
+      const parsedHistory = history ? JSON.parse(history) : []
+      
+      // Truncate history if it exceeds the limit
+      const truncatedHistory = this.truncateHistory(parsedHistory)
+      
+      // If truncation occurred, save the truncated version back to storage
+      if (truncatedHistory.length !== parsedHistory.length) {
+        await this.saveUserHistory(userId, truncatedHistory)
       }
+      
+      return truncatedHistory
     } catch (err) {
-      logger.error(`Failed to get chat history for ${userId}: ${err.message}`)
+      logger.error(`Failed to get user history for ${userId}: ${err.message}`)
       return []
     }
   }
 
-  async saveUserHistory (userId, history) {
+  async saveUserHistory(userId, history) {
     try {
-      logger.info(`Saving chat history for user: ${userId}, messages: ${history.length}`)
-
-      // Truncate before saving to ensure we don't exceed limits
-      const truncatedHistory = this.truncateHistory(history, 20)
-      if (truncatedHistory.length !== history.length) {
-        logger.info(`History truncated before saving: ${history.length} → ${truncatedHistory.length} messages`)
-      }
-
-      const historyJson = JSON.stringify(truncatedHistory)
-      logger.info(`Serialized history length: ${historyJson.length} chars`)
-
-      await this.storage.set(userId, historyJson, { EX: 60 * 60 * 24 })
-      logger.info(`Chat history saved successfully for user: ${userId}`)
+      await this.storageProvider.set(`chat_history:${userId}`, JSON.stringify(history), { ttl: 86400 }) // 24 hours
+      logger.debug(`Saved user history for ${userId}: ${history.length} messages`)
     } catch (err) {
-      logger.error(`Failed to save chat history for ${userId}: ${err.message}`)
-      // Don't throw - allow conversation to continue without persistence
+      logger.error(`Failed to save user history for ${userId}: ${err.message}`)
     }
   }
 
-  truncateHistory (history, maxPairs = 20) {
-    const maxMessages = maxPairs * 2 // user + assistant messages
-    logger.info(`Truncating history: current ${history.length} messages, max ${maxMessages} messages`)
-
-    if (history.length > maxMessages) {
-      const truncated = history.slice(history.length - maxMessages)
-      logger.info(`History truncated: ${history.length} → ${truncated.length} messages`)
-      return truncated
-    }
-
-    logger.info(`History within limits, no truncation needed: ${history.length} messages`)
-    return history
-  }
-
-  addUserMessage (history, message) {
-    logger.info(`Adding user message to history: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`)
-    const newHistory = [...history, { role: 'user', content: message }]
+  addUserMessage(history, message) {
+    // Ensure message is a string
+    const messageStr = String(message || '')
+    logger.info(`Adding user message to history: "${messageStr.substring(0, 50)}${messageStr.length > 50 ? '...' : ''}"`)
+    const newHistory = [...history, { role: 'user', content: messageStr }]
     logger.info(`History after adding user message: ${newHistory.length} messages`)
     return newHistory
   }
 
-  addAssistantMessage (history, message) {
-    logger.info(`Adding assistant message to history: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`)
-    const newHistory = [...history, { role: 'assistant', content: message }]
+  addAssistantMessage(history, message) {
+    // Ensure message is a string
+    const messageStr = String(message || '')
+    logger.info(`Adding assistant message to history: "${messageStr.substring(0, 50)}${messageStr.length > 50 ? '...' : ''}"`)
+    const newHistory = [...history, { role: 'assistant', content: messageStr }]
     logger.info(`History after adding assistant message: ${newHistory.length} messages`)
     return newHistory
   }
 
-  prepareMessagesForGpt (history, systemMessage) {
-    logger.info(`Preparing messages for GPT: ${history.length} history messages + 1 system message`)
-    const messages = [systemMessage, ...history]
-    logger.info(`Total messages for GPT: ${messages.length}`)
-    return messages
+  async addUserMessageAsync(history, message, userId) {
+    const startTime = Date.now()
+    const messageStr = String(message || '')
+    logger.info(`📝 [Async] Adding user message to history: "${messageStr.substring(0, 50)}${messageStr.length > 50 ? '...' : ''}"`)
+    
+    // Add to memory immediately
+    const newHistory = [...history, { role: 'user', content: messageStr }]
+    
+    // Save to Redis asynchronously (don't wait)
+    setImmediate(async () => {
+      try {
+        const saveStart = Date.now()
+        await this.saveUserHistory(userId, newHistory)
+        const saveDuration = Date.now() - saveStart
+        logger.debug(`💾 [Async] Redis save completed in ${saveDuration}ms`)
+      } catch (saveErr) {
+        logger.error(`❌ [Async] Redis save failed: ${saveErr.message}`)
+      }
+    })
+    
+    const totalDuration = Date.now() - startTime
+    logger.info(`✅ [Async] History updated in ${totalDuration}ms`)
+    return newHistory
   }
 
-  // Debug method to check storage provider health
-  async healthCheck () {
+  truncateHistory(history, maxLength = this.maxHistoryLength) {
+    if (history.length <= maxLength) return history
+    const truncated = history.slice(-maxLength)
+    logger.info(`Truncated history from ${history.length} to ${truncated.length} messages`)
+    return truncated
+  }
+
+  async prepareMessagesForGpt(userId, currentMessage) {
+    const startTime = Date.now()
+    logger.info(`📝 [GPT] Preparing messages for user: ${userId}`)
+    
     try {
-      logger.info('Performing ChatHistoryService health check...')
-      const testUserId = 'health_check_user'
-      const testHistory = [
-        { role: 'user', content: 'test message' },
-        { role: 'assistant', content: 'test response' }
-      ]
+      // Get user history
+      const history = await this.getUserHistory(userId)
+      logger.debug(`📊 [GPT] Retrieved ${history.length} history messages`)
+      
+      // Add current message
+      const updatedHistory = this.addUserMessage(history, currentMessage)
+      const truncatedHistory = this.truncateHistory(updatedHistory)
+      
+      // Prepare system message
+      const systemMessage = {
+        role: 'system',
+        content: 'אתה פביו מנטל – אדריכלות פיננסית לצמיחה. יועץ פיננסי מנוסה, מומחה בהשקעות, מיסוי בישראל וניהול הון משפחתי. ענה בעברית, בגובה העיניים, עם דגש על ערך פרקטי. השתמש בעיצוב טקסט WhatsApp בלבד:\n\n- כותרות ראשיות: *כותרת ראשית*\n- כותרות משניות: _כותרת משנית_\n- רשימות: * פריט ראשון\n- רשימות: - פריט שני\n- הדגשות: _טקסט מודגש_\n- ציטוטים: > טקסט חשוב\n- קוד: `מונח טכני`\n- קו חוצה: ~טקסט מיושן~\n\nחשוב: אל תשתמש ב-### או markdown אחר. השתמש רק בעיצוב WhatsApp. וודא שהכוכביות והקווים התחתונים מופיעים בדיוק כמו שצריך: *טקסט* ו_טקסט_. השתמש ברווחים נכונים בין הכוכביות לטקסט.\n\nאל תשאל שאלות בתשובות שלך. תן מידע ישיר ופרקטי ללא שאלות.'
+      }
+      
+      const messages = [systemMessage, ...truncatedHistory]
+      const duration = Date.now() - startTime
+      logger.info(`✅ [GPT] Prepared ${messages.length} messages in ${duration}ms`)
+      
+      return messages
+    } catch (err) {
+      logger.error(`❌ [GPT] Failed to prepare messages: ${err.message}`)
+      throw err
+    }
+  }
 
-      // Test save
-      await this.saveUserHistory(testUserId, testHistory)
-      logger.info('ChatHistoryService save health check passed')
-
-      // Test retrieve
-      const retrieved = await this.getUserHistory(testUserId)
-      logger.info(`ChatHistoryService retrieve health check passed, retrieved ${retrieved.length} messages`)
-
-      // Clean up
-      await this.storage.set(testUserId, '', { EX: 1 })
-      logger.info('ChatHistoryService health check completed successfully')
+  async healthCheck() {
+    try {
+      await this.storageProvider.healthCheck()
       return true
     } catch (err) {
-      logger.error('ChatHistoryService health check failed', err)
+      logger.error(`ChatHistoryService health check failed: ${err.message}`)
       return false
     }
   }
 }
 
 module.exports = ChatHistoryService
+
+// Named export for direct use in streamingController
+const defaultProvider = {
+  get: async () => '[]',
+  set: async () => {},
+  healthCheck: async () => true
+};
+const defaultService = new ChatHistoryService(defaultProvider);
+module.exports.prepareMessagesForGpt = defaultService.prepareMessagesForGpt.bind(defaultService);
+

@@ -9,20 +9,18 @@ function formatWhatsAppMessage(message) {
   if (!message || typeof message !== 'string') return message;
   let formattedMessage = message;
 
-  // Convert markdown headers to WhatsApp bold/italic
-  formattedMessage = formattedMessage.replace(/^###\s*(.+)$/gm, '*$1*');
-  formattedMessage = formattedMessage.replace(/^##\s*(.+)$/gm, '_$1_');
-  formattedMessage = formattedMessage.replace(/^#\s*(.+)$/gm, '*$1*');
+  // First pass: replace headers and bold with placeholders
+  formattedMessage = formattedMessage.replace(/^###\s*(.+)$/gmu, '<<BOLD>>$1<</BOLD>>');
+  formattedMessage = formattedMessage.replace(/^(?![\*_])##(?!#)\s*(.+)$/gmu, '<<ITALIC>>$1<</ITALIC>>');
+  formattedMessage = formattedMessage.replace(/^(?![\*_])#(?!#)\s*(.+)$/gmu, '<<BOLD>>$1<</BOLD>>');
+  formattedMessage = formattedMessage.replace(/\*\*([^*]+)\*\*/g, '<<BOLD>>$1<</BOLD>>');
 
-  // Convert **bold** to *bold*
-  formattedMessage = formattedMessage.replace(/\*\*([^\*]+)\*\*/g, '*$1*');
+  // Second pass: italic (only single asterisks not part of bold or header)
+  formattedMessage = formattedMessage.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '_$1_');
 
-  // Convert *italic* to _italic_ ONLY if not at the start of a line (to avoid list items)
-  formattedMessage = formattedMessage.replace(/(^|[^\w])\*([^\*\n]+)\*/g, (match, p1, p2) => {
-    // If at the start of a line and followed by a space, it's a list item, not italic
-    if (p1.endsWith('\n') && /^\s/.test(p2)) return match;
-    return `${p1}_${p2}_`;
-  });
+  // Final pass: replace placeholders with WhatsApp formatting
+  formattedMessage = formattedMessage.replace(/<<BOLD>>(.*?)<<\/BOLD>>/g, '*$1*');
+  formattedMessage = formattedMessage.replace(/<<ITALIC>>(.*?)<<\/ITALIC>>/g, '_$1_');
 
   // Do not remove or add any newlines or spaces
   logger.info(`📝 Message formatted successfully, length: ${formattedMessage.length} chars`);

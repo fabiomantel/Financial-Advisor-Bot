@@ -1,6 +1,8 @@
 require('dotenv').config()
 const hebrew = require('./hebrew')
 
+console.log('Loaded REDIS_URL:', process.env.REDIS_URL);
+
 module.exports = {
   PORT: process.env.PORT || 3000,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,

@@ -1,6 +1,10 @@
+process.env.REDIS_URL = 'redis://localhost:6379/0';
+process.env.STORAGE_TYPE = 'memory';
+
 const RedisStorageProvider = require('../services/storage/redisStorageProvider')
 const ChatHistoryService = require('../services/chatHistoryService')
 const config = require('../config/config')
+const HybridStorageProvider = require('../services/storage/hybridStorageProvider');
 
 describe('Redis Integration Tests', () => {
   let redisProvider
@@ -39,6 +43,12 @@ describe('Redis Integration Tests', () => {
       // Ignore cleanup errors
     }
   })
+
+  afterEach(() => {
+    // Clear hybrid storage cache after each test
+    const hybrid = new HybridStorageProvider(config);
+    hybrid.clearCache();
+  });
 
   describe('Redis Connection', () => {
     it('should connect to Redis successfully', async () => {
@@ -196,10 +206,14 @@ describe('Redis Integration Tests', () => {
         return
       }
 
-      const userId = 'test_user_1'
+      const userId = 'json_error_user'
+      const key = `chat_history:${userId}`
+
+      // Cleanup before test
+      await redisProvider.client.del(key)
 
       // Store invalid JSON
-      await redisProvider.set(userId, 'invalid json')
+      await redisProvider.set(key, 'invalid json')
 
       // Should handle gracefully
       const history = await chatHistoryService.getUserHistory(userId)

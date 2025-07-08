@@ -28,5 +28,8 @@ _מעבד את השאלה שלך ומכין תשובה מותאמת אישית_ 
   // הודעת שגיאה כשמשהו משתבש
   ERROR_REPLY: `*😕 אופס! משהו השתבש*
 
-_נסה שוב עוד רגע, אני כאן בשבילך_`
+_נסה שוב עוד רגע, אני כאן בשבילך_`,
+
+  // Immediate acknowledgment message for WhatsApp webhook
+  ACK_RECEIVED: `קיבלתי 🙂\n🧭 מנתח את זה לפי העקרונות של התוכנית כדי לדייק לך את התשובה...`,
 } 

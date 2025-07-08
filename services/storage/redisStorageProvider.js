@@ -45,11 +45,11 @@ class RedisStorageProvider {
     })
 
     this.client.on('connect', () => {
-      logger.info('Redis client connected')
+      logger.debug('Redis client connected')
     })
 
     this.client.on('ready', () => {
-      logger.info('Redis client ready')
+      logger.debug('Redis client ready')
     })
 
     this.client.on('end', () => {

@@ -1,6 +1,7 @@
 const express = require('express')
 const { body } = require('express-validator')
-const whatsappController = require('../controllers/whatsappController')
+const streamingController = require('../controllers/streamingController')
+const enhancedWhatsappController = require('../controllers/enhancedWhatsappController')
 
 const router = express.Router()
 
@@ -10,16 +11,18 @@ const validateWebhook = [
   body('From').notEmpty().withMessage('From field is required')
 ]
 
-// Alias for existing Twilio webhook URL
-router.post('/whatsapp', validateWebhook, whatsappController.handleWebhook)
+// New streaming endpoint
+router.post('/whatsapp/streaming', validateWebhook, streamingController.handleStreamingWebhook)
 
-// Health check endpoint
-router.get('/health', whatsappController.healthCheck)
+// Enhanced endpoint with all optimizations
+router.post('/whatsapp/enhanced', validateWebhook, enhancedWhatsappController.handleWebhook)
 
-// Test Redis endpoint
-router.get('/test-redis', whatsappController.testRedis)
+// Enhanced health check endpoint
+router.get('/health/enhanced', enhancedWhatsappController.healthCheck)
 
-// Get user chat history
-router.get('/history/:userId', whatsappController.getUserHistory)
+// Get enhanced stats
+router.get('/stats/enhanced', (req, res) => {
+  res.json(enhancedWhatsappController.getStats())
+})
 
 module.exports = router

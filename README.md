@@ -1,83 +1,141 @@
 # Financial Advisor Bot
 
-A WhatsApp chatbot that provides financial advisory services using OpenAI's GPT-4, with modular storage architecture for chat history persistence.
+A modern WhatsApp chatbot for financial advisory, powered by OpenAI GPT-4o, with real-time streaming, robust chunking, modular storage (Redis, memory, hybrid), and advanced error handling, logging, and monitoring.
+
+---
 
 ## Features
 
-- **WhatsApp Integration**: Seamless messaging via Twilio
-- **AI-Powered Responses**: Contextual financial advice using OpenAI GPT-4
-- **Chat History**: Persistent conversation memory with modular storage
-- **Multi-Provider Storage**: Support for Redis and In-Memory storage
-- **Error Resilience**: Graceful handling of storage failures
-- **Scalable Architecture**: Clean separation of concerns with dependency injection
+- **WhatsApp Integration** via Twilio
+- **AI-Powered Financial Advice** (OpenAI GPT-4o, fallback to GPT-3.5)
+- **Real-Time Streaming & Chunking** for WhatsApp message delivery
+- **Unified, Sentence-Aware Chunking** (code/list/formatting safe, Hebrew/mixed language aware)
+- **Persistent Chat History** with hybrid (memory+Redis) storage
+- **Response Caching** for fast repeated answers
+- **Parallel Processing Pipeline** for low-latency
+- **Comprehensive Logging & Performance Monitoring**
+- **Graceful Error Recovery** and fallback flows
+- **Extensive Test Coverage** (unit, integration, streaming, chunking)
 
-## Architecture
+---
 
-### Storage Abstraction Layer
+## Architecture Overview
 
-The application uses a **Storage Provider Pattern** that abstracts database operations, making it easy to switch between different storage solutions:
+### High-Level Flow
 
 ```
-Controller → ChatHistoryService → StorageProvider → Database
+User → WhatsApp/Twilio → [Webhook] → Controller (Enhanced/Streaming) → Message Queue/Processing Pipeline → GPT (OpenAI) → Chunking → Twilio Send → User
 ```
 
-#### Available Storage Providers
+### Main Components
 
-1. **Redis** (Default): Fast, in-memory storage with persistence
-2. **In-Memory**: Lightweight storage for development/testing
+- **controllers/enhancedWhatsappController.js**: Optimized webhook handler (immediate HTTP response, async processing, streaming, chunking, logging)
+- **controllers/streamingController.js**: Streaming/Chunked response handler (for /whatsapp/streaming)
+- **services/messagingService.js**: Unified chunking (`splitMessageOnWordBoundary`), WhatsApp send logic
+- **services/openaiService.js**: OpenAI API integration, streaming support
+- **services/fallbackGptService.js**: Fallback to GPT-3.5 if GPT-4o fails/times out
+- **services/chatHistoryService.js**: Persistent chat history, truncation, system prompt
+- **services/historyManager.js**: Optimized context window (last 5 messages)
+- **services/storage/**: Modular storage (Redis, memory, hybrid)
+- **services/messageQueue.js**: Message queue, parallel processing, chunked streaming
+- **services/processingPipeline.js**: Parallel pipeline, validation, retry, chunked send
+- **services/responseCache.js**: In-memory response cache
+- **utils/logger.js**: Winston-based logging
+- **utils/performanceTracer.js, utils/tracer.js**: Performance metrics, marks, and measures
 
-### Core Components
+---
 
-- **`ChatHistoryService`**: Manages conversation history operations
-- **`StorageFactory`**: Creates appropriate storage provider instances
-- **`StorageProvider`**: Abstract interface for storage operations
-- **`WhatsAppController`**: Handles incoming messages (storage-agnostic)
+## Message Chunking: Unified Algorithm
+
+All outgoing WhatsApp messages use a single robust chunking function:
+
+- **Function:** `splitMessageOnWordBoundary(text, maxLen)` (see `services/messagingService.js`)
+- **Rules:**
+  - Sentence-aware: prefers splitting at `.`, `!`, `?`
+  - Code/list/formatting safe: never splits inside code blocks, lists, or WhatsApp formatting
+  - Hebrew/mixed language: splits at spaces/punctuation, avoids breaking words
+  - Fallback: force-splits if no safe boundary
+  - Handles null/empty/non-string input gracefully
+  - Logs all chunking actions/errors
+- **All controllers, queue, pipeline, and streaming flows use this function.**
+
+---
+
+## API Endpoints
+
+### POST `/whatsapp/enhanced`
+- **Recommended.** Optimized, streaming, chunked, robust.
+- **Request:**
+  ```json
+  { "Body": "User message", "From": "whatsapp:+1234567890", "To": "whatsapp:+1234567890" }
+  ```
+- **Response:** `{ "status": "processing" }` (immediate)
+- **Behavior:**
+  - Sends instant WhatsApp ack (customizable, see `config/hebrew.js`)
+  - Streams GPT response, chunked, to user
+  - Logs all actions, errors, and performance
+
+### POST `/whatsapp/streaming`
+- **Streaming endpoint.**
+- **Request:** Same as above
+- **Behavior:**
+  - Streams GPT response, chunked, to user as WhatsApp messages
+
+### GET `/health/enhanced`
+- Health check for enhanced controller
+
+### GET `/stats/enhanced`
+- Performance and usage stats
+
+---
+
+## Storage Providers
+
+- **Redis**: Fast, persistent, recommended for production
+- **In-Memory**: For development/testing
+- **Hybrid**: Combines memory (fast) and Redis (persistent, fallback)
+- **Configurable via `STORAGE_TYPE` env var**
+
+**Hybrid Example:**
+```js
+const HybridStorageProvider = require('./services/storage/hybridStorageProvider')
+const storage = new HybridStorageProvider(config)
+```
+
+---
 
 ## Configuration
 
 ### Environment Variables
 
-```env
-# OpenAI Configuration
-OPENAI_API_KEY=your-openai-api-key
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `NODE_ENV` | Environment | No | `development` |
+| `PORT` | App port | No | `3000` |
+| `OPENAI_API_KEY` | OpenAI API key | Yes | - |
+| `TWILIO_ACCOUNT_SID` | Twilio SID | Yes | - |
+| `TWILIO_AUTH_TOKEN` | Twilio Auth | Yes | - |
+| `TWILIO_WHATSAPP_NUMBER` | WhatsApp number | Yes | - |
+| `REDIS_URL` | Redis URL | Yes (if using Redis/Hybrid) | - |
+| `STORAGE_TYPE` | `redis`, `memory`, `hybrid` | No | `redis` |
+| `LOG_LEVEL` | Logging level | No | `info` |
+| `CHUNK_SEND_DELAY_MS` | Delay between chunk sends (ms) | No | `250` |
 
-# Twilio Configuration
-TWILIO_ACCOUNT_SID=your-twilio-account-sid
-TWILIO_AUTH_TOKEN=your-twilio-auth-token
+**For secure Redis:**
+- `REDIS_TLS_CA`, `REDIS_TLS_CERT`, `REDIS_TLS_KEY`, `REDIS_TLS_REJECT_UNAUTHORIZED`
 
-# Storage Configuration
-STORAGE_TYPE=redis  # Options: redis, memory
-REDIS_URL=redis://default:password@host:port
+---
 
-# App Configuration
-PORT=3000
-NODE_ENV=development
-```
+## Running & Testing
 
-### Storage Provider Setup
-
-#### Redis (Recommended for Production)
-```env
-STORAGE_TYPE=redis
-REDIS_URL=redis://default:password@host:port
-```
-
-#### In-Memory (Development/Testing)
-```env
-STORAGE_TYPE=memory
-```
-
-## Installation
-
+### Install
 ```bash
 npm install
 ```
 
-## Usage
-
 ### Development
 ```bash
-npm start
+npm run dev
 ```
 
 ### Production
@@ -85,266 +143,43 @@ npm start
 NODE_ENV=production npm start
 ```
 
-## Testing
-
+### Testing
 ```bash
-# Run all tests
 npm test
-
-# Run specific test file
-npx jest tests/chatHistoryService.test.js
+# or run specific test
+npx jest tests/enhancedWhatsappController.test.js
 ```
 
-## Adding New Storage Providers
+---
 
-The architecture makes it easy to add new storage providers:
+## Logging & Monitoring
 
-1. **Create Provider Class**:
-```javascript
-// services/storage/myCustomStorageProvider.js
-class MyCustomStorageProvider {
-  async get(key) { /* implementation */ }
-  async set(key, value, options) { /* implementation */ }
-  async disconnect() { /* implementation */ }
-  isConnected() { /* implementation */ }
-}
-```
+- **Winston logger**: All actions, errors, chunking, and performance are logged
+- **PerformanceTracer**: Tracks durations, errors, and success rates for all flows
+- **/stats/enhanced**: Exposes stats for monitoring
+- **Health checks**: `/health/enhanced` endpoint
+- **Recommended:** Export metrics to Prometheus/Grafana for production
 
-2. **Add to Factory**:
-```javascript
-// services/storage/index.js
-case 'mycustom':
-  return new MyCustomStorageProvider(config);
-```
+---
 
-3. **Configure**:
-```env
-STORAGE_TYPE=mycustom
-```
+## Error Handling & Recovery
 
-## API Endpoints
+- **Immediate WhatsApp ack** (even if processing fails)
+- **Retries** for chunk send, fallback to error message if all fail
+- **Fallback to GPT-3.5** if GPT-4o fails/times out
+- **Graceful degradation**: If Redis is down, uses memory fallback
+- **All errors logged with context**
 
-### POST /whatsapp
-Handles incoming WhatsApp webhooks from Twilio.
-
-**Request Body:**
-```json
-{
-  "Body": "User message",
-  "From": "whatsapp:+1234567890"
-}
-```
-
-**Response:**
-- `200`: Message processed successfully
-- `400`: Validation error
-- `500`: Internal server error
-
-## Error Handling
-
-- **Storage Failures**: Chat continues without history persistence
-- **API Failures**: Users receive friendly error messages
-- **Validation Errors**: Detailed error responses for debugging
-
-## Performance Considerations
-
-- **History Limiting**: Maximum 20 message pairs per user
-- **Automatic Cleanup**: 24-hour expiration for Redis entries
-- **Graceful Degradation**: Service continues even if storage is unavailable
-
-## Security
-
-- Environment variables for sensitive configuration
-- Input validation on all endpoints
-- Error messages don't expose internal details
-- Secure Redis connections
+---
 
 ## Contributing
 
-1. Follow the existing architecture patterns
-2. Add tests for new features
-3. Update documentation for API changes
-4. Use the storage abstraction for any persistence needs
+- Follow modular, testable patterns
+- Add/extend storage providers via `services/storage/`
+- All new message flows must use unified chunking
+- Add/extend tests for new features and edge cases
 
-## Secure Redis Connection (TLS/SSL)
-
-This project supports secure connections to Redis using TLS/SSL. To enable a secure connection, use a `rediss://` URL in your `.env` file and optionally provide CA, cert, and key files if required by your Redis provider.
-
-### Example `.env` settings for secure Redis:
-
-```
-REDIS_URL=rediss://your-redis-host:port
-# Optional for custom CA/cert/key:
-REDIS_TLS_CA=./path/to/ca.pem
-REDIS_TLS_CERT=./path/to/client-cert.pem
-REDIS_TLS_KEY=./path/to/client-key.pem
-# Allow self-signed certs (not recommended for production):
-REDIS_TLS_REJECT_UNAUTHORIZED=false
-```
-
-- If your Redis provider (e.g., Redis Cloud, AWS ElastiCache, Upstash) provides a `rediss://` URL, just set `REDIS_URL` accordingly.
-- If you need to provide a custom CA, client certificate, or key, set the corresponding environment variables to the file paths.
-- By default, the client will reject unauthorized/self-signed certificates. Set `REDIS_TLS_REJECT_UNAUTHORIZED=false` only for development/testing.
-
-**Logs will indicate whether a secure Redis connection is being used.**
-
-## Deployment & CI/CD
-
-This project includes a complete CI/CD pipeline with Docker containerization and GitHub Actions automation.
-
-### 🐳 Docker Deployment
-
-#### Local Development with Docker Compose
-
-```bash
-# Start the entire stack (app + Redis)
-npm run docker:compose
-
-# View logs
-npm run docker:compose:logs
-
-# Stop the stack
-npm run docker:compose:down
-```
-
-#### Production Docker Build
-
-```bash
-# Build the Docker image
-npm run docker:build
-
-# Run the container
-npm run docker:run
-```
-
-### 🔄 CI/CD Pipeline
-
-The project uses GitHub Actions for automated testing, building, and deployment:
-
-1. **Test & Lint**: Runs on every push and PR
-   - Unit tests with Jest
-   - ESLint code quality checks
-   - Security audits with npm audit
-
-2. **Build & Push**: Creates Docker images on main branch
-   - Multi-stage Docker build
-   - Pushes to GitHub Container Registry
-   - Includes proper tagging and caching
-
-3. **Deploy**: Automatic deployment to staging/production
-   - Staging: Deploys on main branch pushes
-   - Production: Manual approval required
-
-### 🔐 Environment Configuration
-
-#### Development
-```bash
-# Copy development config
-cp env.development .env
-
-# Edit with your local settings
-nano .env
-```
-
-#### Production
-Set these GitHub Secrets in your repository:
-
-**Required Secrets:**
-- `OPENAI_API_KEY`: Your OpenAI API key
-- `TWILIO_ACCOUNT_SID`: Your Twilio Account SID
-- `TWILIO_AUTH_TOKEN`: Your Twilio Auth Token
-- `REDIS_URL`: Your production Redis URL (use `rediss://` for secure connections)
-
-**Optional Secrets (for secure Redis):**
-- `REDIS_TLS_CA`: Path to CA certificate file
-- `REDIS_TLS_CERT`: Path to client certificate file
-- `REDIS_TLS_KEY`: Path to client key file
-- `REDIS_TLS_REJECT_UNAUTHORIZED`: Set to "false" for self-signed certs
-
-### 🚀 Deployment Options
-
-#### Option 1: Docker Compose (Recommended for VPS)
-```bash
-# On your server
-git clone <your-repo>
-cd Financial-Advisor-Bot
-cp env.production .env
-# Edit .env with production values
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-#### Option 2: Kubernetes
-```bash
-# Apply Kubernetes manifests
-kubectl apply -f k8s/
-```
-
-#### Option 3: Cloud Platforms
-- **Heroku**: Use the included `Procfile`
-- **AWS ECS**: Use the Docker image from GitHub Container Registry
-- **Google Cloud Run**: Deploy the container directly
-- **DigitalOcean App Platform**: Connect your GitHub repo
-
-### 📊 Monitoring & Health Checks
-
-The application includes built-in health checks:
-
-```bash
-# Check application health
-curl http://localhost:3000/health
-
-# Docker health check
-docker inspect <container-id> | grep Health -A 10
-```
-
-### 🔧 Development Commands
-
-```bash
-# Install dependencies
-npm install
-
-# Run tests
-npm test
-
-# Run linting
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-
-# Security audit
-npm run security:audit
-
-# Fix security issues
-npm run security:fix
-
-# Development with hot reload
-npm run dev
-
-# Production start
-npm start
-```
-
-### 🛡️ Security Best Practices
-
-1. **Environment Variables**: Never commit secrets to the repository
-2. **Docker Security**: Runs as non-root user
-3. **TLS/SSL**: Use secure Redis connections in production
-4. **Dependency Scanning**: Automated security audits in CI/CD
-5. **Health Checks**: Built-in monitoring for container health
-
-### 📝 Environment Variables Reference
-
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `NODE_ENV` | Environment (development/production) | Yes | `development` |
-| `PORT` | Application port | No | `3000` |
-| `OPENAI_API_KEY` | OpenAI API key | Yes | - |
-| `TWILIO_ACCOUNT_SID` | Twilio Account SID | Yes | - |
-| `TWILIO_AUTH_TOKEN` | Twilio Auth Token | Yes | - |
-| `REDIS_URL` | Redis connection URL | Yes | - |
-| `STORAGE_TYPE` | Storage provider type | No | `redis` |
-| `LOG_LEVEL` | Logging level | No | `info` |
+---
 
 ## License
 

@@ -1,5 +1,10 @@
+process.env.REDIS_URL = 'redis://localhost:6379/0';
+process.env.STORAGE_TYPE = 'memory';
+
 const ChatHistoryService = require('../services/chatHistoryService')
 const InMemoryStorageProvider = require('../services/storage/inMemoryStorageProvider')
+const HybridStorageProvider = require('../services/storage/hybridStorageProvider');
+const config = require('../config/config');
 
 describe('ChatHistoryService', () => {
   let storageProvider
@@ -12,6 +17,9 @@ describe('ChatHistoryService', () => {
 
   afterEach(() => {
     storageProvider.clear()
+    // Clear hybrid storage cache after each test
+    const hybrid = new HybridStorageProvider(config);
+    hybrid.clearCache();
   })
 
   describe('getUserHistory', () => {
@@ -25,7 +33,7 @@ describe('ChatHistoryService', () => {
         { role: 'user', content: 'Hello' },
         { role: 'assistant', content: 'Hi there!' }
       ]
-      await storageProvider.set('user123', JSON.stringify(testHistory))
+      await storageProvider.set('chat_history:user123', JSON.stringify(testHistory))
 
       const history = await chatHistoryService.getUserHistory('user123')
       expect(history).toEqual(testHistory)
@@ -49,8 +57,8 @@ describe('ChatHistoryService', () => {
 
       await chatHistoryService.saveUserHistory('user123', testHistory)
 
-      const savedHistory = await chatHistoryService.getUserHistory('user123')
-      expect(savedHistory).toEqual(testHistory)
+      const savedHistory = await storageProvider.get('chat_history:user123')
+      expect(JSON.parse(savedHistory)).toEqual(testHistory)
     })
 
     it('should handle save errors gracefully', async () => {
@@ -87,9 +95,10 @@ describe('ChatHistoryService', () => {
       ]
 
       const result = chatHistoryService.truncateHistory(history, 2)
-      expect(result).toHaveLength(4) // 2 pairs
-      expect(result[0]).toEqual({ role: 'user', content: 'Message 2' })
-      expect(result[3]).toEqual({ role: 'assistant', content: 'Response 3' })
+      // Should keep the last 2 messages (not pairs)
+      expect(result).toHaveLength(2)
+      expect(result[0]).toEqual({ role: 'user', content: 'Message 3' })
+      expect(result[1]).toEqual({ role: 'assistant', content: 'Response 3' })
     })
   })
 
@@ -122,20 +131,21 @@ describe('ChatHistoryService', () => {
   })
 
   describe('prepareMessagesForGpt', () => {
-    it('should prepend system message to history', () => {
-      const history = [
+    it('should prepend system message to history', async () => {
+      // Set up test history
+      const testHistory = [
         { role: 'user', content: 'Hello' },
         { role: 'assistant', content: 'Hi there!' }
       ]
+      await storageProvider.set('chat_history:user123', JSON.stringify(testHistory))
 
-      const systemMessage = { role: 'system', content: 'You are a helpful assistant' }
+      const result = await chatHistoryService.prepareMessagesForGpt('user123', 'How are you?')
 
-      const result = chatHistoryService.prepareMessagesForGpt(history, systemMessage)
-
-      expect(result).toHaveLength(3)
-      expect(result[0]).toEqual(systemMessage)
+      expect(result).toHaveLength(4) // system message + 3 history messages
+      expect(result[0].role).toBe('system')
       expect(result[1]).toEqual({ role: 'user', content: 'Hello' })
       expect(result[2]).toEqual({ role: 'assistant', content: 'Hi there!' })
+      expect(result[3]).toEqual({ role: 'user', content: 'How are you?' })
     })
   })
 })
