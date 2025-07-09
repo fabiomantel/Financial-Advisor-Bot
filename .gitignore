@@ -9,3 +9,4 @@ debug-dashboard.html
 *.tmp
 .vscode/
 *.local.js
+*.lock
