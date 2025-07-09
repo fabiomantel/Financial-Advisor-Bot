@@ -1,20 +1,23 @@
 const logger = require('../utils/logger');
 const { sendMessage } = require('../services/messagingService');
 const debugStore = require('../utils/debugStore');
+const { formatWhatsAppMessage } = require('../utils/messageFormatter');
 
 const MAX_WHATSAPP_LENGTH = 4096;
 
 async function sendResponse(to, response, debugReqId, isDev) {
   const responseText = String(response || 'Oops! Something went wrong. Please try again.');
+  // Format the message to prevent duplicate asterisks
+  const formattedResponse = formatWhatsAppMessage(responseText);
   const toWhatsApp = processPhoneNumber(to);
-  if (responseText.length <= MAX_WHATSAPP_LENGTH) {
-    logger.debug(`[SEND] Sending single message to ${toWhatsApp}: "${responseText}"`);
+  if (formattedResponse.length <= MAX_WHATSAPP_LENGTH) {
+    logger.debug(`[SEND] Sending single message to ${toWhatsApp}: "${formattedResponse}"`);
     try {
-      await sendMessage({ to: toWhatsApp, body: responseText });
+      await sendMessage({ to: toWhatsApp, body: formattedResponse });
       debugStore.add({
         type: 'message_sent',
         to: toWhatsApp,
-        body: responseText,
+        body: formattedResponse,
         meta: { reqId: debugReqId }
       });
       logger.debug(`[SEND] Message sent successfully to ${toWhatsApp}`);
@@ -31,10 +34,10 @@ async function sendResponse(to, response, debugReqId, isDev) {
   } else {
     // Split into the minimum number of large chunks (up to 4096 chars each)
     const chunks = [];
-    for (let i = 0; i < responseText.length; i += MAX_WHATSAPP_LENGTH) {
-      chunks.push(responseText.slice(i, i + MAX_WHATSAPP_LENGTH));
+    for (let i = 0; i < formattedResponse.length; i += MAX_WHATSAPP_LENGTH) {
+      chunks.push(formattedResponse.slice(i, i + MAX_WHATSAPP_LENGTH));
     }
-    logger.warn(`[SEND] Response too long (${responseText.length} chars), splitting into ${chunks.length} WhatsApp messages.`);
+    logger.warn(`[SEND] Response too long (${formattedResponse.length} chars), splitting into ${chunks.length} WhatsApp messages.`);
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       logger.debug(`[SEND] Sending chunk ${i + 1}/${chunks.length} to ${toWhatsApp}: "${chunk.slice(0, 80)}..."`);

@@ -71,9 +71,14 @@ function splitMessageOnWordBoundary (text, maxLen) {
           const fmt = { bold: false, italic: false, code: false }
           for (let i = 0; i < str.length; i++) {
             const c = str[i]
-            if (c === '*' && (i === 0 || str[i - 1] !== '*')) fmt.bold = !fmt.bold
-            if (c === '_' && (i === 0 || str[i - 1] !== '_')) fmt.italic = !fmt.italic
-            if (c === '`') fmt.code = !fmt.code
+            // Improved formatting detection to prevent duplicates
+            if (c === '*' && (i === 0 || str[i - 1] !== '*')) {
+              fmt.bold = !fmt.bold
+            } else if (c === '_' && (i === 0 || str[i - 1] !== '_')) {
+              fmt.italic = !fmt.italic
+            } else if (c === '`') {
+              fmt.code = !fmt.code
+            }
             cur += c
             if (cur.length >= maxLen && !fmt.bold && !fmt.italic && !fmt.code) {
               out.push(cur)

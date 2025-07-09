@@ -9,18 +9,28 @@ function formatWhatsAppMessage (message) {
   if (!message || typeof message !== 'string') return message
   let formattedMessage = message
 
+  // Clean up any existing WhatsApp formatting to prevent duplicates
+  formattedMessage = formattedMessage.replace(/\*\*+/g, '**') // Remove extra asterisks
+  formattedMessage = formattedMessage.replace(/__+/g, '__') // Remove extra underscores
+
   // First pass: replace headers and bold with placeholders
   formattedMessage = formattedMessage.replace(/^###\s*(.+)$/gmu, '<<BOLD>>$1<</BOLD>>')
   formattedMessage = formattedMessage.replace(/^(?![\*_])##(?!#)\s*(.+)$/gmu, '<<ITALIC>>$1<</ITALIC>>')
   formattedMessage = formattedMessage.replace(/^(?![\*_])#(?!#)\s*(.+)$/gmu, '<<BOLD>>$1<</BOLD>>')
-  formattedMessage = formattedMessage.replace(/\*\*([^*]+)\*\*/g, '<<BOLD>>$1<</BOLD>>')
+  
+  // Improved bold regex to handle nested asterisks better
+  formattedMessage = formattedMessage.replace(/\*\*([^*]+?)\*\*/g, '<<BOLD>>$1<</BOLD>>')
 
   // Second pass: italic (only single asterisks not part of bold or header)
-  formattedMessage = formattedMessage.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '_$1_')
+  formattedMessage = formattedMessage.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '_$1_')
 
   // Final pass: replace placeholders with WhatsApp formatting
   formattedMessage = formattedMessage.replace(/<<BOLD>>(.*?)<<\/BOLD>>/g, '*$1*')
   formattedMessage = formattedMessage.replace(/<<ITALIC>>(.*?)<<\/ITALIC>>/g, '_$1_')
+
+  // Final cleanup: remove any remaining duplicate asterisks
+  formattedMessage = formattedMessage.replace(/\*\*+/g, '*') // Convert multiple asterisks to single
+  formattedMessage = formattedMessage.replace(/__+/g, '_') // Convert multiple underscores to single
 
   // Do not remove or add any newlines or spaces
   logger.info(`📝 Message formatted successfully, length: ${formattedMessage.length} chars`)
