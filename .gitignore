@@ -2,6 +2,7 @@ node_modules/
 .env
 coverage/
 *.log
+package-lock.json
 test-report.html
 debug-dashboard.html
 *.DS_Store
@@ -9,4 +10,3 @@ debug-dashboard.html
 *.tmp
 .vscode/
 *.local.js
-*.lock
