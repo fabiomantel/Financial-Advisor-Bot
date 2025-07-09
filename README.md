@@ -1,6 +1,6 @@
 # Financial Advisor Bot
 
-A modern WhatsApp chatbot for financial advisory, powered by OpenAI GPT-4o, with real-time streaming, robust chunking, modular storage (Redis, memory, hybrid), and advanced error handling, logging, and monitoring.
+A modern WhatsApp chatbot for financial advisory, powered by OpenAI GPT-4o, with real-time streaming, robust chunking, modular storage (Redis, memory, hybrid), advanced context management, summarization, and a dev-only debug dashboard.
 
 ---
 
@@ -11,37 +11,130 @@ A modern WhatsApp chatbot for financial advisory, powered by OpenAI GPT-4o, with
 - **Real-Time Streaming & Chunking** for WhatsApp message delivery
 - **Unified, Sentence-Aware Chunking** (code/list/formatting safe, Hebrew/mixed language aware)
 - **Persistent Chat History** with hybrid (memory+Redis) storage
+- **Rolling Context Window** and **Dynamic Summarization**
 - **Response Caching** for fast repeated answers
 - **Parallel Processing Pipeline** for low-latency
 - **Comprehensive Logging & Performance Monitoring**
 - **Graceful Error Recovery** and fallback flows
 - **Extensive Test Coverage** (unit, integration, streaming, chunking)
+- **Dev-Only Debug Dashboard**: Visualize message flow, context, GPT input/output, and Redis saves
 
 ---
 
-## Architecture Overview
+## Message Processing Flow
 
-### High-Level Flow
+```mermaid
+flowchart TD
+    T["WhatsApp GPT Bot: Detailed Message Processing Flow"]
 
+    %% User/API Entry
+    A["User sends WhatsApp message"]
+    B["Express Controller receives webhook"]
+
+    %% Immediate Response
+    C["Send instant reply (acknowledgment)"]
+
+    %% Validation
+    D["Validate incoming message"]
+    E{"Valid message?"}
+    F["Log & send error reply (invalid message)"]
+
+    %% Context
+    G["Normalize & process phone number"]
+    H["Load user context from Redis"]
+    H2["If not found: initialize new context"]
+
+    %% GPT
+    I["Build GPT context (system prompt, summary, recent messages, user message)"]
+    J["Call OpenAI API (streaming)"]
+    J2{"GPT error?"}
+    K["Log & send error reply (GPT failure)"]
+
+    %% Chunking & Sending
+    L["Buffer & chunk GPT response (sentence/word/code-aware)"]
+    M["Send each chunk as WhatsApp message"]
+
+    %% Context Update
+    N["Update context: add message pair, increment counter"]
+    O{"Summary update needed?"}
+    P["Generate new summary (if needed)"]
+    Q["Save updated context & summary to Redis (async)"]
+
+    %% Logging/Debug
+    R["Log actions, timings, errors"]
+    S["Debug dashboard (dev-only)"]
+
+    %% Flow
+    T --> A
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E -- "No" --> F
+    F --> R
+    F --> S
+    E -- "Yes" --> G
+    G --> H
+    H --> H2
+    H2 --> I
+    I --> J
+    J --> J2
+    J2 -- "Yes" --> K
+    K --> R
+    K --> S
+    J2 -- "No" --> L
+    L --> M
+    M --> N
+    N --> O
+    O -- "Yes" --> P
+    P --> Q
+    O -- "No" --> Q
+    Q --> R
+    Q --> S
+
+    %% Styling
+    classDef user fill:#e3e3e3,stroke:#333,stroke-width:2px,color:#222;
+    classDef api fill:#fff,stroke:#333,stroke-width:2px,color:#222;
+    classDef redis fill:#d0e6f7,stroke:#333,stroke-width:2px,color:#222;
+    classDef gpt fill:#ffe9b3,stroke:#333,stroke-width:2px,color:#222;
+    class A user;
+    class B,C,D,E,F,G,H,H2,I,J,J2,K,L,M,N,O,P,Q,R,S api;
+    class H,H2,Q redis;
+    class J,J2,K gpt;
 ```
-User → WhatsApp/Twilio → [Webhook] → Controller (Enhanced/Streaming) → Message Queue/Processing Pipeline → GPT (OpenAI) → Chunking → Twilio Send → User
-```
 
-### Main Components
+---
 
-- **controllers/enhancedWhatsappController.js**: Optimized webhook handler (immediate HTTP response, async processing, streaming, chunking, logging)
-- **controllers/streamingController.js**: Streaming/Chunked response handler (for /whatsapp/streaming)
-- **services/messagingService.js**: Unified chunking (`splitMessageOnWordBoundary`), WhatsApp send logic
-- **services/openaiService.js**: OpenAI API integration, streaming support
-- **services/fallbackGptService.js**: Fallback to GPT-3.5 if GPT-4o fails/times out
-- **services/chatHistoryService.js**: Persistent chat history, truncation, system prompt
-- **services/historyManager.js**: Optimized context window (last 5 messages)
-- **services/storage/**: Modular storage (Redis, memory, hybrid)
-- **services/messageQueue.js**: Message queue, parallel processing, chunked streaming
-- **services/processingPipeline.js**: Parallel pipeline, validation, retry, chunked send
-- **services/responseCache.js**: In-memory response cache
-- **utils/logger.js**: Winston-based logging
-- **utils/performanceTracer.js, utils/tracer.js**: Performance metrics, marks, and measures
+## Debug Dashboard (Development Only)
+
+- **Path:** `/debug-dashboard` (served only in development mode)
+- **How to use:**
+  1. Start the server with `NODE_ENV=development`
+  2. Open [http://localhost:3000/debug-dashboard](http://localhost:3000/debug-dashboard)
+  3. Manually reload to see the latest message flow
+- **What it shows:**
+  - Incoming WhatsApp message
+  - Context sent to GPT
+  - GPT response
+  - What is saved to Redis
+  - All steps in the flow, with timestamps
+- **Implementation:** In-memory, no new routes, no data persisted
+
+---
+
+## Context & Summarization
+
+- **Context**: System prompt, summary (as system message), rolling window of recent message pairs, and the latest user message (always included)
+- **Summary**: Short, updated after a threshold of messages/tokens, used as background for GPT
+- **Token management**: Context is trimmed to fit within the model's token limit
+- **Streaming**: GPT responses are streamed, with idle timeout reset on each chunk
+
+---
+
+## .env and .gitignore
+
+- **.env**: Store all secrets and environment variables here (see below)
+- **.gitignore**: Ensures `.env`, `node_modules/`, logs, coverage, debug dashboard, and other artifacts are not committed
 
 ---
 

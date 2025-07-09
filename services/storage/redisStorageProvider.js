@@ -1,6 +1,6 @@
 const redis = require('redis')
 const fs = require('fs')
-const logger = require('../../utils/logger')
+const logger = require('../../utils/logger');
 
 class RedisStorageProvider {
   constructor (config) {

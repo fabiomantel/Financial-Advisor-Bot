@@ -1,13 +1,13 @@
-const logger = require('./logger')
+const logger = require('./logger');
 
 class PerformanceTracer {
-  constructor() {
+  constructor () {
     this.metrics = new Map()
     this.startTimes = new Map()
     logger.info('PerformanceTracer initialized')
   }
 
-  start(operation, metadata = {}) {
+  start (operation, metadata = {}) {
     const id = `${operation}-${Date.now()}-${Math.random()}`
     this.startTimes.set(id, {
       startTime: Date.now(),
@@ -17,7 +17,7 @@ class PerformanceTracer {
     return id
   }
 
-  end(id) {
+  end (id) {
     const startData = this.startTimes.get(id)
     if (!startData) {
       logger.warn(`PerformanceTracer: No start data found for id: ${id}`)
@@ -29,7 +29,7 @@ class PerformanceTracer {
     this.startTimes.delete(id)
   }
 
-  record(operation, duration, metadata = {}) {
+  record (operation, duration, metadata = {}) {
     if (!this.metrics.has(operation)) {
       this.metrics.set(operation, {
         count: 0,
@@ -55,7 +55,7 @@ class PerformanceTracer {
     return metric
   }
 
-  recordError(operation, error, metadata = {}) {
+  recordError (operation, error, metadata = {}) {
     if (!this.metrics.has(operation)) {
       this.metrics.set(operation, {
         count: 0,
@@ -73,9 +73,9 @@ class PerformanceTracer {
     logger.error(`❌ [Tracer] ${operation} error: ${error.message}`, metadata)
   }
 
-  getStats() {
+  getStats () {
     const stats = {}
-    
+
     for (const [operation, metric] of this.metrics.entries()) {
       stats[operation] = {
         count: metric.count,
@@ -91,7 +91,7 @@ class PerformanceTracer {
     return stats
   }
 
-  getOperationStats(operation) {
+  getOperationStats (operation) {
     const metric = this.metrics.get(operation)
     if (!metric) {
       return null
@@ -108,16 +108,16 @@ class PerformanceTracer {
     }
   }
 
-  clear() {
+  clear () {
     this.metrics.clear()
     this.startTimes.clear()
     logger.info('PerformanceTracer cleared')
   }
 
   // Convenience methods for common operations
-  async trace(operation, fn, metadata = {}) {
+  async trace (operation, fn, metadata = {}) {
     const id = this.start(operation, metadata)
-    
+
     try {
       const result = await fn()
       this.end(id)
@@ -128,9 +128,9 @@ class PerformanceTracer {
     }
   }
 
-  traceSync(operation, fn, metadata = {}) {
+  traceSync (operation, fn, metadata = {}) {
     const id = this.start(operation, metadata)
-    
+
     try {
       const result = fn()
       this.end(id)
@@ -142,4 +142,4 @@ class PerformanceTracer {
   }
 }
 
-module.exports = PerformanceTracer 
+module.exports = PerformanceTracer

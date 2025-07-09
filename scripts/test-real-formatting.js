@@ -1,4 +1,5 @@
 const { formatWhatsAppMessage } = require('../utils/messageFormatter')
+const logger = require('../utils/logger');
 
 // Real WhatsApp message that's having formatting issues
 const realMessage = `*📋 למה צריך יעוץ*
@@ -33,18 +34,18 @@ _📋 למה צריך ייעוץ פיננסי?_ייעוץ פיננסי יכול 
 
 נוספת!_ 💼_אשמח לעזור בכל שאלה`
 
-console.log('=== ORIGINAL MESSAGE ===')
-console.log(realMessage)
-console.log('\n=== FORMATTED MESSAGE ===')
+logger.info('=== ORIGINAL MESSAGE ===')
+logger.info(realMessage)
+logger.info('\n=== FORMATTED MESSAGE ===')
 const formatted = formatWhatsAppMessage(realMessage)
-console.log(formatted)
-console.log('\n=== MESSAGE LENGTH ===')
-console.log(`Original: ${realMessage.length} chars`)
-console.log(`Formatted: ${formatted.length} chars`)
+logger.info(formatted)
+logger.info('\n=== MESSAGE LENGTH ===')
+logger.info(`Original: ${realMessage.length} chars`)
+logger.info(`Formatted: ${formatted.length} chars`)
 
 // Check for specific formatting issues
-console.log('\n=== FORMATTING ANALYSIS ===')
-console.log('Contains literal underscores:', formatted.includes('_'))
-console.log('Contains literal asterisks:', formatted.includes('*'))
-console.log('Number of newlines:', (formatted.match(/\n/g) || []).length)
-console.log('Number of double newlines:', (formatted.match(/\n\n/g) || []).length) 
+logger.info('\n=== FORMATTING ANALYSIS ===')
+logger.info('Contains literal underscores:', formatted.includes('_'))
+logger.info('Contains literal asterisks:', formatted.includes('*'))
+logger.info('Number of newlines:', (formatted.match(/\n/g) || []).length)
+logger.info('Number of double newlines:', (formatted.match(/\n\n/g) || []).length)

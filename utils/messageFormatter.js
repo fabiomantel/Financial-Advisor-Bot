@@ -1,30 +1,30 @@
-const logger = require('./logger')
+const logger = require('./logger');
 
 /**
  * Formats a message for WhatsApp with proper text formatting
  * @param {string} message - The raw message from GPT
  * @returns {string} - Formatted message for WhatsApp
  */
-function formatWhatsAppMessage(message) {
-  if (!message || typeof message !== 'string') return message;
-  let formattedMessage = message;
+function formatWhatsAppMessage (message) {
+  if (!message || typeof message !== 'string') return message
+  let formattedMessage = message
 
   // First pass: replace headers and bold with placeholders
-  formattedMessage = formattedMessage.replace(/^###\s*(.+)$/gmu, '<<BOLD>>$1<</BOLD>>');
-  formattedMessage = formattedMessage.replace(/^(?![\*_])##(?!#)\s*(.+)$/gmu, '<<ITALIC>>$1<</ITALIC>>');
-  formattedMessage = formattedMessage.replace(/^(?![\*_])#(?!#)\s*(.+)$/gmu, '<<BOLD>>$1<</BOLD>>');
-  formattedMessage = formattedMessage.replace(/\*\*([^*]+)\*\*/g, '<<BOLD>>$1<</BOLD>>');
+  formattedMessage = formattedMessage.replace(/^###\s*(.+)$/gmu, '<<BOLD>>$1<</BOLD>>')
+  formattedMessage = formattedMessage.replace(/^(?![\*_])##(?!#)\s*(.+)$/gmu, '<<ITALIC>>$1<</ITALIC>>')
+  formattedMessage = formattedMessage.replace(/^(?![\*_])#(?!#)\s*(.+)$/gmu, '<<BOLD>>$1<</BOLD>>')
+  formattedMessage = formattedMessage.replace(/\*\*([^*]+)\*\*/g, '<<BOLD>>$1<</BOLD>>')
 
   // Second pass: italic (only single asterisks not part of bold or header)
-  formattedMessage = formattedMessage.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '_$1_');
+  formattedMessage = formattedMessage.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '_$1_')
 
   // Final pass: replace placeholders with WhatsApp formatting
-  formattedMessage = formattedMessage.replace(/<<BOLD>>(.*?)<<\/BOLD>>/g, '*$1*');
-  formattedMessage = formattedMessage.replace(/<<ITALIC>>(.*?)<<\/ITALIC>>/g, '_$1_');
+  formattedMessage = formattedMessage.replace(/<<BOLD>>(.*?)<<\/BOLD>>/g, '*$1*')
+  formattedMessage = formattedMessage.replace(/<<ITALIC>>(.*?)<<\/ITALIC>>/g, '_$1_')
 
   // Do not remove or add any newlines or spaces
-  logger.info(`📝 Message formatted successfully, length: ${formattedMessage.length} chars`);
-  return formattedMessage;
+  logger.info(`📝 Message formatted successfully, length: ${formattedMessage.length} chars`)
+  return formattedMessage
 }
 
 /**
@@ -33,7 +33,7 @@ function formatWhatsAppMessage(message) {
  * @param {string} topic - The topic of the message
  * @returns {string} - Message with header
  */
-function addMessageHeader(message, topic) {
+function addMessageHeader (message, topic) {
   if (!message || !topic) {
     return message
   }
@@ -53,7 +53,7 @@ function addMessageHeader(message, topic) {
  * @param {string} message - The message to add conclusion to
  * @returns {string} - Message with conclusion
  */
-function addMessageConclusion(message) {
+function addMessageConclusion (message) {
   if (!message) {
     return message
   }
@@ -73,11 +73,11 @@ function addMessageConclusion(message) {
     }
   }
 
-  return message 
+  return message
 }
 
 module.exports = {
   formatWhatsAppMessage,
   addMessageHeader,
   addMessageConclusion
-} 
+}

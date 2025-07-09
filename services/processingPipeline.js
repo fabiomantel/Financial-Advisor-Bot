@@ -1,11 +1,11 @@
-const logger = require('../utils/logger')
+const logger = require('../utils/logger');
 const PerformanceTracer = require('../utils/performanceTracer')
 const SmartHistoryManager = require('./historyManager')
 const FallbackGptService = require('./fallbackGptService')
 const { sendMessage, splitMessageOnWordBoundary } = require('./messagingService')
 
 class ProcessingPipeline {
-  constructor({ historyManager, gptService, sendMessageFn } = {}) {
+  constructor ({ historyManager, gptService, sendMessageFn } = {}) {
     this.tracer = new PerformanceTracer()
     this.maxRetries = 3
     this.retryDelay = 1000 // 1 second
@@ -14,12 +14,12 @@ class ProcessingPipeline {
     this.sendMessage = sendMessageFn || sendMessage
   }
 
-  async process(message) {
+  async process (message) {
     const startTime = Date.now()
     const pipelineId = `pipeline-${Date.now()}`
-    
+
     logger.info(`🚀 [Pipeline] Starting processing for ${message.from}`)
-    
+
     try {
       // Parallel processing of all tasks
       const parallelStart = Date.now()
@@ -48,7 +48,7 @@ class ProcessingPipeline {
       setImmediate(async () => {
         try {
           await this.saveContextAsync(message.from, message.body, gptResponse)
-          logger.debug(`💾 [Pipeline] Context saved asynchronously`)
+          logger.debug('💾 [Pipeline] Context saved asynchronously')
         } catch (saveErr) {
           logger.error(`❌ [Pipeline] Failed to save context: ${saveErr.message}`)
         }
@@ -68,7 +68,7 @@ class ProcessingPipeline {
 
       const totalDuration = Date.now() - startTime
       logger.info(`🎉 [Pipeline] Processing completed in ${totalDuration}ms`)
-      
+
       this.tracer.record('pipeline_processing', totalDuration, {
         pipelineId,
         userId: message.from,
@@ -78,29 +78,28 @@ class ProcessingPipeline {
       })
 
       return gptResponse
-
     } catch (err) {
       logger.error(`💥 [Pipeline] Processing failed: ${err.message}`)
-      
+
       this.tracer.record('pipeline_error', Date.now() - startTime, {
         pipelineId,
         userId: message.from,
         error: err.message
       })
-      
+
       throw err
     }
   }
 
-  async loadContext(userId) {
+  async loadContext (userId) {
     const startTime = Date.now()
     logger.debug(`📚 [Pipeline] Loading context for ${userId}`)
-    
+
     try {
       const context = await this.historyManager.getOptimizedContext(userId)
       const duration = Date.now() - startTime
       logger.debug(`✅ [Pipeline] Context loaded in ${duration}ms`)
-      
+
       return context
     } catch (err) {
       logger.error(`❌ [Pipeline] Failed to load context: ${err.message}`)
@@ -108,15 +107,15 @@ class ProcessingPipeline {
     }
   }
 
-  async prepareGptRequest(message) {
+  async prepareGptRequest (message) {
     const startTime = Date.now()
     logger.debug(`🤖 [Pipeline] Preparing GPT request for ${message.from}`)
-    
+
     try {
       const gptRequest = [{ role: 'user', content: message.body }]
       const duration = Date.now() - startTime
       logger.debug(`✅ [Pipeline] GPT request prepared in ${duration}ms`)
-      
+
       return gptRequest
     } catch (err) {
       logger.error(`❌ [Pipeline] Failed to prepare GPT request: ${err.message}`)
@@ -124,10 +123,10 @@ class ProcessingPipeline {
     }
   }
 
-  async validateMessage(message) {
+  async validateMessage (message) {
     const startTime = Date.now()
     logger.debug(`🔍 [Pipeline] Validating message from ${message.from}`)
-    
+
     try {
       // Basic validation
       if (!message.body || message.body.trim().length === 0) {
@@ -145,7 +144,7 @@ class ProcessingPipeline {
 
       const duration = Date.now() - startTime
       logger.debug(`✅ [Pipeline] Message validated in ${duration}ms`)
-      
+
       return { valid: true }
     } catch (err) {
       logger.error(`❌ [Pipeline] Validation failed: ${err.message}`)
@@ -153,47 +152,46 @@ class ProcessingPipeline {
     }
   }
 
-  isSpam(message) {
+  isSpam (message) {
     // Simple spam detection
     const spamPatterns = [
       /(buy|sell|investment|profit|money|cash|earn|rich|wealth)/i,
       /(http|www|\.com|\.net|\.org)/i,
       /(call|text|message|contact|reach)/i
     ]
-    
+
     return spamPatterns.some(pattern => pattern.test(message))
   }
 
-  async processGptResponseWithRetry(message, gptRequest, context) {
+  async processGptResponseWithRetry (message, gptRequest, context) {
     let lastError = null
-    
+
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         logger.debug(`🔄 [Pipeline] GPT attempt ${attempt}/${this.maxRetries}`)
-        
+
         let fullResponse = ''
         await this.gptService.getResponse(gptRequest, (chunk) => {
           fullResponse += chunk
         })
         logger.info(`✅ [Pipeline] GPT response successful on attempt ${attempt}`)
-        
+
         return fullResponse
-        
       } catch (err) {
         lastError = err
         logger.warn(`⚠️ [Pipeline] GPT attempt ${attempt} failed: ${err.message}`)
-        
+
         if (attempt < this.maxRetries) {
           await this.delay(this.retryDelay * attempt)
         }
       }
     }
-    
-    logger.error(`💥 [Pipeline] All GPT attempts failed`)
+
+    logger.error('💥 [Pipeline] All GPT attempts failed')
     throw lastError
   }
 
-  async saveContextAsync(userId, userMessage, botResponse) {
+  async saveContextAsync (userId, userMessage, botResponse) {
     try {
       const chatHistoryService = require('./chatHistoryService')
       const storageProvider = require('./storage')
@@ -210,17 +208,17 @@ class ProcessingPipeline {
     }
   }
 
-  async sendErrorResponse(to, error) {
-    const errorMessage = "😕 אופס! משהו השתבש. נסה שוב עוד רגע."
+  async sendErrorResponse (to, error) {
+    const errorMessage = '😕 אופס! משהו השתבש. נסה שוב עוד רגע.'
     await this.sendMessage({ to, body: errorMessage })
     logger.info(`[PIPELINE] Sent error response to ${to}: ${error}`)
   }
 
-  delay(ms) {
+  delay (ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
   }
 
-  getPipelineStats() {
+  getPipelineStats () {
     return {
       maxRetries: this.maxRetries,
       retryDelay: this.retryDelay,

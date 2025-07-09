@@ -1,9 +1,9 @@
-const logger = require('../../utils/logger')
+const logger = require('../../utils/logger');
 const RedisStorageProvider = require('./redisStorageProvider')
 const InMemoryStorageProvider = require('./inMemoryStorageProvider')
 
 class HybridStorageProvider {
-  constructor(config) {
+  constructor (config) {
     this.memoryCache = new Map() // Fast access
     this.redisProvider = new RedisStorageProvider(config) // Persistence
     this.memoryProvider = new InMemoryStorageProvider() // Fallback
@@ -19,10 +19,10 @@ class HybridStorageProvider {
     }
   }
 
-  async get(key) {
+  async get (key) {
     const startTime = Date.now()
     logger.debug(`🔍 [Hybrid] Getting key: ${key}`)
-    
+
     try {
       // Check memory first
       if (this.memoryCache.has(key)) {
@@ -45,14 +45,14 @@ class HybridStorageProvider {
           this.stats.redisHits++
           const duration = Date.now() - startTime
           logger.debug(`💾 [Hybrid] Redis hit in ${duration}ms`)
-          
+
           // Cache in memory for next time
           this.setMemoryCache(key, value)
           return value
         }
       } catch (redisErr) {
         logger.warn(`⚠️ [Hybrid] Redis failed, trying memory: ${redisErr.message}`)
-        
+
         // Fallback to memory storage
         const value = await this.memoryProvider.get(key)
         if (value !== null) {
@@ -67,23 +67,22 @@ class HybridStorageProvider {
       const duration = Date.now() - startTime
       logger.debug(`❌ [Hybrid] Cache miss in ${duration}ms`)
       return null
-
     } catch (err) {
       logger.error(`❌ [Hybrid] Get operation failed: ${err.message}`)
       return null
     }
   }
 
-  async set(key, value, options = {}) {
+  async set (key, value, options = {}) {
     const startTime = Date.now()
     logger.debug(`💾 [Hybrid] Setting key: ${key}`)
-    
+
     try {
       this.stats.saves++
-      
+
       // Set in memory cache
       this.setMemoryCache(key, value)
-      
+
       // Set in Redis asynchronously (don't wait)
       setImmediate(async () => {
         try {
@@ -98,36 +97,35 @@ class HybridStorageProvider {
       const duration = Date.now() - startTime
       logger.debug(`✅ [Hybrid] Set operation completed in ${duration}ms`)
       return 'OK'
-
     } catch (err) {
       logger.error(`❌ [Hybrid] Set operation failed: ${err.message}`)
       throw err
     }
   }
 
-  setMemoryCache(key, value) {
+  setMemoryCache (key, value) {
     // Check if cleanup is needed
     this.clearOldEntries()
-    
+
     // Add to memory cache
     this.memoryCache.set(key, {
       value,
       timestamp: Date.now()
     })
-    
+
     // Limit cache size
     if (this.memoryCache.size > this.maxCacheSize) {
       this.evictOldest()
     }
   }
 
-  clearOldEntries() {
+  clearOldEntries () {
     const now = Date.now()
     if (now - this.lastCleanup < this.cleanupInterval) {
       return
     }
 
-    logger.info(`🧹 [Hybrid] Starting cache cleanup...`)
+    logger.info('🧹 [Hybrid] Starting cache cleanup...')
     let removedCount = 0
 
     for (const [key, cached] of this.memoryCache.entries()) {
@@ -141,7 +139,7 @@ class HybridStorageProvider {
     logger.info(`🧹 [Hybrid] Cache cleanup completed: removed ${removedCount} entries`)
   }
 
-  evictOldest() {
+  evictOldest () {
     let oldestKey = null
     let oldestTime = Date.now()
 
@@ -158,11 +156,11 @@ class HybridStorageProvider {
     }
   }
 
-  async healthCheck() {
+  async healthCheck () {
     try {
       const redisHealth = await this.redisProvider.healthCheck()
       const memoryHealth = await this.memoryProvider.healthCheck()
-      
+
       logger.info(`🏥 [Hybrid] Health check - Redis: ${redisHealth}, Memory: ${memoryHealth}`)
       return redisHealth && memoryHealth
     } catch (err) {
@@ -171,20 +169,20 @@ class HybridStorageProvider {
     }
   }
 
-  async disconnect() {
+  async disconnect () {
     try {
       await this.redisProvider.disconnect()
       this.memoryCache.clear()
-      logger.info(`🔌 [Hybrid] Disconnected successfully`)
+      logger.info('🔌 [Hybrid] Disconnected successfully')
     } catch (err) {
       logger.error(`❌ [Hybrid] Disconnect failed: ${err.message}`)
     }
   }
 
-  getStats() {
+  getStats () {
     const totalRequests = this.stats.memoryHits + this.stats.redisHits + this.stats.misses
     const hitRate = totalRequests > 0 ? ((this.stats.memoryHits + this.stats.redisHits) / totalRequests * 100).toFixed(2) : 0
-    
+
     return {
       ...this.stats,
       totalRequests,
@@ -195,29 +193,29 @@ class HybridStorageProvider {
   }
 
   // Implement the same interface as other storage providers
-  async getUserHistory(userId) {
+  async getUserHistory (userId) {
     // Check memory first
     if (this.memoryCache.has(userId)) {
-      logger.info(`[HYBRID STORAGE] Cache hit for user: ${userId}`);
-      return this.memoryCache.get(userId);
+      logger.info(`[HYBRID STORAGE] Cache hit for user: ${userId}`)
+      return this.memoryCache.get(userId)
     }
-    logger.info(`[HYBRID STORAGE] Cache miss for user: ${userId}, loading from Redis`);
-    const history = await this.redisProvider.getUserHistory(userId);
-    this.memoryCache.set(userId, history);
-    this.clearOldEntries();
-    return history;
+    logger.info(`[HYBRID STORAGE] Cache miss for user: ${userId}, loading from Redis`)
+    const history = await this.redisProvider.getUserHistory(userId)
+    this.memoryCache.set(userId, history)
+    this.clearOldEntries()
+    return history
   }
 
-  async saveUserHistory(userId, history) {
-    this.memoryCache.set(userId, history);
-    await this.redisProvider.saveUserHistory(userId, history);
-    logger.debug(`[HYBRID STORAGE] Saved user history for user: ${userId}`);
-    this.clearOldEntries();
+  async saveUserHistory (userId, history) {
+    this.memoryCache.set(userId, history)
+    await this.redisProvider.saveUserHistory(userId, history)
+    logger.debug(`[HYBRID STORAGE] Saved user history for user: ${userId}`)
+    this.clearOldEntries()
   }
 
-  clearCache() {
-    this.memoryCache.clear();
+  clearCache () {
+    this.memoryCache.clear()
   }
 }
 
-module.exports = HybridStorageProvider 
+module.exports = HybridStorageProvider

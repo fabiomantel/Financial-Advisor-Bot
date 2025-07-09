@@ -1,10 +1,11 @@
-process.env.REDIS_URL = 'redis://localhost:6379/0';
-process.env.STORAGE_TYPE = 'memory';
+process.env.REDIS_URL = 'redis://localhost:6379/0'
+process.env.STORAGE_TYPE = 'memory'
 
 const ChatHistoryService = require('../services/chatHistoryService')
 const InMemoryStorageProvider = require('../services/storage/inMemoryStorageProvider')
-const HybridStorageProvider = require('../services/storage/hybridStorageProvider');
-const config = require('../config/config');
+const HybridStorageProvider = require('../services/storage/hybridStorageProvider')
+const config = require('../config/config')
+const { safeSetTimeout } = require('./testUtils')
 
 describe('ChatHistoryService', () => {
   let storageProvider
@@ -18,8 +19,8 @@ describe('ChatHistoryService', () => {
   afterEach(() => {
     storageProvider.clear()
     // Clear hybrid storage cache after each test
-    const hybrid = new HybridStorageProvider(config);
-    hybrid.clearCache();
+    const hybrid = new HybridStorageProvider(config)
+    hybrid.clearCache()
   })
 
   describe('getUserHistory', () => {

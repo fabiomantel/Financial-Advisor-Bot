@@ -1,4 +1,5 @@
 const { formatWhatsAppMessage } = require('../utils/messageFormatter')
+const logger = require('../utils/logger');
 
 // Test message with various formatting
 const testMessage = `*📋 תוכנית מיסוי נדלן*
@@ -13,11 +14,11 @@ _📋 תוכנית מיסוי נדל"ן בארה"ב_השקעה בנדל"ן בא�
 
 _אם יש לך שאלות נוספות או זקוק למידע נוסף, אני כאן לעזור!_🏠💼`
 
-console.log('=== ORIGINAL MESSAGE ===')
-console.log(testMessage)
-console.log('\n=== FORMATTED MESSAGE ===')
+logger.info('=== ORIGINAL MESSAGE ===')
+logger.info(testMessage)
+logger.info('\n=== FORMATTED MESSAGE ===')
 const formatted = formatWhatsAppMessage(testMessage)
-console.log(formatted)
-console.log('\n=== MESSAGE LENGTH ===')
-console.log(`Original: ${testMessage.length} chars`)
-console.log(`Formatted: ${formatted.length} chars`) 
+logger.info(formatted)
+logger.info('\n=== MESSAGE LENGTH ===')
+logger.info(`Original: ${testMessage.length} chars`)
+logger.info(`Formatted: ${formatted.length} chars`)

@@ -1,6 +1,6 @@
-const logger = require('../utils/logger')
+const logger = require('../utils/logger');
 
-console.log('=== TESTING ENHANCED LOGGING ===')
+logger.info('=== TESTING ENHANCED LOGGING ===')
 
 // Test basic logging
 logger.info('🚀 === NEW WHATSAPP MESSAGE RECEIVED ===')
@@ -33,4 +33,4 @@ logger.info('📤 Sending bot reply to whatsapp:+1234567890')
 logger.info('✅ Bot reply sent successfully')
 logger.info('🎉 === MESSAGE PROCESSING COMPLETE ===')
 
-console.log('=== LOGGING TEST COMPLETE ===') 
+logger.info('=== LOGGING TEST COMPLETE ===')

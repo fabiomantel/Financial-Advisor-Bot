@@ -1,5 +1,6 @@
 const express = require('express')
 const bodyParser = require('body-parser')
+const logger = require('../utils/logger');
 
 const app = express()
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -7,19 +8,19 @@ app.use(bodyParser.json())
 
 // Log all incoming requests
 app.use((req, res, next) => {
-  console.log('=== INCOMING REQUEST ===')
-  console.log(`Method: ${req.method}`)
-  console.log(`URL: ${req.url}`)
-  console.log('Headers:', req.headers)
-  console.log('Body:', req.body)
-  console.log('========================')
+  logger.info('=== INCOMING REQUEST ===')
+  logger.info(`Method: ${req.method}`)
+  logger.info(`URL: ${req.url}`)
+  logger.info('Headers:', req.headers)
+  logger.info('Body:', req.body)
+  logger.info('========================')
   next()
 })
 
 // Handle webhook
 app.post('/whatsapp', (req, res) => {
-  console.log('✅ Webhook received!')
-  console.log('Body:', req.body)
+  logger.info('✅ Webhook received!')
+  logger.info('Body:', req.body)
   res.sendStatus(200)
 })
 
@@ -30,6 +31,6 @@ app.get('/health', (req, res) => {
 
 const PORT = 3001
 app.listen(PORT, () => {
-  console.log(`Test server running on port ${PORT}`)
-  console.log(`Webhook URL: http://localhost:${PORT}/whatsapp`)
+  logger.info(`Test server running on port ${PORT}`)
+  logger.info(`Webhook URL: http://localhost:${PORT}/whatsapp`)
 })

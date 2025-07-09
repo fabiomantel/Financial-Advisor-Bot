@@ -13,20 +13,20 @@ describe('formatWhatsAppMessage', () => {
   })
 
   it('preserves newlines and lists', () => {
-    const input = '* Header\n\n* Item 1\n* Item 2\n- Item 3\n1. First\n2. Second\n> Quote';
-    const expected = '* Header\n\n* Item 1\n* Item 2\n- Item 3\n1. First\n2. Second\n> Quote';
+    const input = '* Header\n\n* Item 1\n* Item 2\n- Item 3\n1. First\n2. Second\n> Quote'
+    const expected = '* Header\n\n* Item 1\n* Item 2\n- Item 3\n1. First\n2. Second\n> Quote'
     expect(formatWhatsAppMessage(input)).toBe(expected)
   })
 
   it('handles mixed formatting', () => {
-    const input = '### כותרת\n\n**מודגש** *נטוי*\n- רשימה\n1. ממוספר\n> ציטוט';
-    const expected = '*כותרת*\n\n*מודגש* _נטוי_\n- רשימה\n1. ממוספר\n> ציטוט';
+    const input = '### כותרת\n\n**מודגש** *נטוי*\n- רשימה\n1. ממוספר\n> ציטוט'
+    const expected = '*כותרת*\n\n*מודגש* _נטוי_\n- רשימה\n1. ממוספר\n> ציטוט'
     expect(formatWhatsAppMessage(input)).toBe(expected)
   })
 
   it('does not remove or compress newlines', () => {
-    const input = 'Line1\n\nLine2\n\n\nLine3';
-    const expected = 'Line1\n\nLine2\n\n\nLine3';
+    const input = 'Line1\n\nLine2\n\n\nLine3'
+    const expected = 'Line1\n\nLine2\n\n\nLine3'
     expect(formatWhatsAppMessage(input)).toBe(expected)
   })
 
@@ -35,4 +35,4 @@ describe('formatWhatsAppMessage', () => {
     expect(formatWhatsAppMessage(undefined)).toBe(undefined)
     expect(formatWhatsAppMessage(123)).toBe(123)
   })
-}) 
+})

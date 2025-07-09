@@ -3,18 +3,17 @@ const { sendMessage, splitMessageOnWordBoundary } = require('../services/messagi
 const { prepareMessagesForGpt } = require('../services/chatHistoryService')
 const FallbackGptService = require('../services/fallbackGptService')
 const PerformanceTracer = require('../utils/tracer')
-const logger = require('../utils/logger')
+const logger = require('../utils/logger');
 
 // Refactored: Export a factory for dependency injection
-function createStreamingController({
+function createStreamingController ({
   getGptReplyStream = require('../services/openaiService').getGptReplyStream,
   sendMessage = require('../services/messagingService').sendMessage,
   splitMessageOnWordBoundary = require('../services/messagingService').splitMessageOnWordBoundary,
   prepareMessagesForGpt = require('../services/chatHistoryService').prepareMessagesForGpt,
   fallbackService = new (require('../services/fallbackGptService'))(),
   tracer = new (require('../utils/tracer'))(),
-  logger = require('../utils/logger'),
-  CHUNK_SEND_DELAY_MS = parseInt(process.env.CHUNK_SEND_DELAY_MS, 10) || 250,
+  CHUNK_SEND_DELAY_MS = parseInt(process.env.CHUNK_SEND_DELAY_MS, 10) || 250
 } = {}) {
   return {
     handleStreamingWebhook: async (req, res) => {
@@ -49,7 +48,7 @@ function createStreamingController({
                 logger.error(`[ERROR] Failed to send chunk #${messageCount} to ${from}: ${sendErr.message}`)
               }
               chunkBuffer = ''
-              await new Promise(res => setTimeout(res, CHUNK_SEND_DELAY_MS))
+              await new Promise(resolve => setTimeout(resolve, CHUNK_SEND_DELAY_MS))
             }
           }
         })
@@ -82,6 +81,6 @@ function createStreamingController({
 }
 
 // Default export for production usage (backward compatible)
-const defaultController = createStreamingController();
-module.exports = defaultController;
-module.exports.createStreamingController = createStreamingController; 
+const defaultController = createStreamingController()
+module.exports = defaultController
+module.exports.createStreamingController = createStreamingController

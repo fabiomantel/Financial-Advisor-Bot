@@ -1,4 +1,5 @@
-const { createLogger, transports, format } = require('winston')
+// WARNING: Do not import any local files here! Only import from 'winston' and Node modules to avoid circular dependencies.
+const { createLogger, transports, format } = require('winston');
 
 const logger = createLogger({
   level: 'debug',
@@ -6,7 +7,7 @@ const logger = createLogger({
     format.timestamp(),
     format.colorize(),
     format.printf(({ timestamp, level, message }) => {
-      return `${timestamp} [${level}]: ${message}`
+      return `${timestamp} [${level}]: ${message}`;
     })
   ),
   transports: [
@@ -14,6 +15,6 @@ const logger = createLogger({
       colorize: true
     })
   ]
-})
+});
 
-module.exports = logger
+module.exports = logger;

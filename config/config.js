@@ -1,7 +1,8 @@
 require('dotenv').config()
 const hebrew = require('./hebrew')
+const logger = require('../utils/logger');
 
-console.log('Loaded REDIS_URL:', process.env.REDIS_URL);
+logger.info('Loaded REDIS_URL:', process.env.REDIS_URL)
 
 module.exports = {
   PORT: process.env.PORT || 3000,
@@ -20,5 +21,13 @@ module.exports = {
     from: 'From'
   },
   REDIS_URL: process.env.REDIS_URL,
-  STORAGE_TYPE: process.env.STORAGE_TYPE || 'redis'
+  STORAGE_TYPE: process.env.STORAGE_TYPE || 'redis',
+  // Context management config
+  CONTEXT_RECENT_PAIRS: parseInt(process.env.CONTEXT_RECENT_PAIRS, 10) || 5,
+  CONTEXT_SUMMARY_TRIGGER: parseInt(process.env.CONTEXT_SUMMARY_TRIGGER, 10) || 10,
+  CONTEXT_MIN_MSG_LENGTH: parseInt(process.env.CONTEXT_MIN_MSG_LENGTH, 10) || 50,
+  CONTEXT_FILTER_PHRASES: hebrew.CONTEXT_FILTER_PHRASES,
+  CONTEXT_SUMMARY_PROMPT: hebrew.CONTEXT_SUMMARY_PROMPT,
+  CONTEXT_MAX_TOKEN_COUNT: parseInt(process.env.CONTEXT_MAX_TOKEN_COUNT, 10) || 800,
+  CONTEXT_SUMMARY_TRIGGER_TOKENS: parseInt(process.env.CONTEXT_SUMMARY_TRIGGER_TOKENS, 10) || 1200
 }

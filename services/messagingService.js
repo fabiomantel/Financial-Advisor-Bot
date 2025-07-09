@@ -1,6 +1,6 @@
 const axios = require('axios')
 const config = require('../config/config')
-const logger = require('../utils/logger')
+const logger = require('../utils/logger');
 
 const MAX_BODY_LENGTH = 1600
 
@@ -10,7 +10,7 @@ const MAX_BODY_LENGTH = 1600
  * @param {number} maxLen
  * @returns {string[]}
  */
-function splitMessageOnWordBoundary(text, maxLen) {
+function splitMessageOnWordBoundary (text, maxLen) {
   try {
     if (!text || typeof text !== 'string') {
       logger.warn('[CHUNK] Invalid input to splitMessageOnWordBoundary:', text)
@@ -20,16 +20,16 @@ function splitMessageOnWordBoundary(text, maxLen) {
 
     // Helper: is inside code block
     let inCodeBlock = false
-    let inInlineCode = false
+    const inInlineCode = false
     let inList = false
-    let inBold = false
-    let inItalic = false
-    let inWhatsAppCode = false
+    const inBold = false
+    const inItalic = false
+    const inWhatsAppCode = false
     let buffer = ''
-    let chunks = []
-    let lines = text.split(/\n/)
+    const chunks = []
+    const lines = text.split(/\n/)
     for (let i = 0; i < lines.length; i++) {
-      let line = lines[i]
+      const line = lines[i]
       // Detect multi-line code block
       if (line.trim().startsWith('```')) {
         inCodeBlock = !inCodeBlock
@@ -61,18 +61,18 @@ function splitMessageOnWordBoundary(text, maxLen) {
         continue
       }
       // Sentence-aware splitting
-      let sentences = line.match(/[^.!?\n]+[.!?]?/g) || [line]
-      for (let s of sentences) {
+      const sentences = line.match(/[^.!?\n]+[.!?]?/g) || [line]
+      for (const s of sentences) {
         // WhatsApp formatting: avoid splitting inside *bold*, _italic_, `code`
         // Simple stateful scan for formatting
-        let safeSplit = (str) => {
-          let out = []
+        const safeSplit = (str) => {
+          const out = []
           let cur = ''
-          let fmt = { bold: false, italic: false, code: false }
+          const fmt = { bold: false, italic: false, code: false }
           for (let i = 0; i < str.length; i++) {
-            let c = str[i]
-            if (c === '*' && (i === 0 || str[i-1] !== '*')) fmt.bold = !fmt.bold
-            if (c === '_' && (i === 0 || str[i-1] !== '_')) fmt.italic = !fmt.italic
+            const c = str[i]
+            if (c === '*' && (i === 0 || str[i - 1] !== '*')) fmt.bold = !fmt.bold
+            if (c === '_' && (i === 0 || str[i - 1] !== '_')) fmt.italic = !fmt.italic
             if (c === '`') fmt.code = !fmt.code
             cur += c
             if (cur.length >= maxLen && !fmt.bold && !fmt.italic && !fmt.code) {
@@ -90,16 +90,16 @@ function splitMessageOnWordBoundary(text, maxLen) {
             buffer = s
           } else {
             // Sentence too long, try word boundary
-            let words = s.split(' ')
+            const words = s.split(' ')
             let cur = ''
-            for (let w of words) {
+            for (const w of words) {
               if ((cur + (cur ? ' ' : '') + w).length > maxLen) {
                 if (cur) {
                   chunks.push(cur)
                   cur = w
                 } else {
                   // Word too long, force split
-                  let forced = safeSplit(w)
+                  const forced = safeSplit(w)
                   chunks.push(...forced)
                   cur = ''
                 }
@@ -126,13 +126,13 @@ function splitMessageOnWordBoundary(text, maxLen) {
 }
 
 async function sendMessage ({ to, body }) {
-  logger.info(`[SEND] Attempting to send message to ${to}. Body length: ${body.length}`);
+  logger.info(`[SEND] Attempting to send message to ${to}. Body length: ${body.length}`)
   if (body.length > MAX_BODY_LENGTH) {
-    logger.warn(`[CHUNK] Message body exceeds ${MAX_BODY_LENGTH} characters. Splitting into multiple messages for ${to}.`);
-    const chunks = splitMessageOnWordBoundary(body, MAX_BODY_LENGTH);
+    logger.warn(`[CHUNK] Message body exceeds ${MAX_BODY_LENGTH} characters. Splitting into multiple messages for ${to}.`)
+    const chunks = splitMessageOnWordBoundary(body, MAX_BODY_LENGTH)
     for (const chunk of chunks) {
       try {
-        logger.debug(`[SEND] Sending chunk to ${to}: "${chunk}"`);
+        logger.debug(`[SEND] Sending chunk to ${to}: "${chunk}"`)
         await axios.post(
           config.TWILIO_API_URL(config.TWILIO_ACCOUNT_SID),
           new URLSearchParams({
@@ -146,21 +146,21 @@ async function sendMessage ({ to, body }) {
               password: config.TWILIO_AUTH_TOKEN
             }
           }
-        );
-        logger.debug(`[SEND] Chunk sent successfully to ${to}`);
+        )
+        logger.debug(`[SEND] Chunk sent successfully to ${to}`)
       } catch (err) {
-        logger.error(`[ERROR] Twilio API error (chunked) for ${to}: ${err.message}`);
+        logger.error(`[ERROR] Twilio API error (chunked) for ${to}: ${err.message}`)
         if (err.response) {
-          logger.error(`[ERROR] Twilio status: ${err.response.status}`);
-          logger.error(`[ERROR] Twilio data: ${JSON.stringify(err.response.data)}`);
+          logger.error(`[ERROR] Twilio status: ${err.response.status}`)
+          logger.error(`[ERROR] Twilio data: ${JSON.stringify(err.response.data)}`)
         }
-        throw err;
+        throw err
       }
     }
-    return { success: true };
+    return { success: true }
   }
   try {
-    logger.debug(`[SEND] Sending message to ${to}: "${body}"`);
+    logger.debug(`[SEND] Sending message to ${to}: "${body}"`)
     await axios.post(
       config.TWILIO_API_URL(config.TWILIO_ACCOUNT_SID),
       new URLSearchParams({
@@ -174,16 +174,16 @@ async function sendMessage ({ to, body }) {
           password: config.TWILIO_AUTH_TOKEN
         }
       }
-    );
-    logger.info(`[SEND] Message sent successfully to ${to}`);
-    return { success: true };
+    )
+    logger.info(`[SEND] Message sent successfully to ${to}`)
+    return { success: true }
   } catch (err) {
-    logger.error(`[ERROR] Twilio API error for ${to}: ${err.message}`);
+    logger.error(`[ERROR] Twilio API error for ${to}: ${err.message}`)
     if (err.response) {
-      logger.error(`[ERROR] Twilio status: ${err.response.status}`);
-      logger.error(`[ERROR] Twilio data: ${JSON.stringify(err.response.data)}`);
+      logger.error(`[ERROR] Twilio status: ${err.response.status}`)
+      logger.error(`[ERROR] Twilio data: ${JSON.stringify(err.response.data)}`)
     }
-    throw err;
+    throw err
   }
 }
 

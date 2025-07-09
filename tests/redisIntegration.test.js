@@ -1,19 +1,23 @@
-process.env.REDIS_URL = 'redis://localhost:6379/0';
-process.env.STORAGE_TYPE = 'memory';
+const logger = require('../utils/logger');
+
+process.env.REDIS_URL = 'redis://localhost:6379/0'
+process.env.STORAGE_TYPE = 'memory'
 
 const RedisStorageProvider = require('../services/storage/redisStorageProvider')
 const ChatHistoryService = require('../services/chatHistoryService')
 const config = require('../config/config')
-const HybridStorageProvider = require('../services/storage/hybridStorageProvider');
+const HybridStorageProvider = require('../services/storage/hybridStorageProvider')
+const { safeSetTimeout } = require('./testUtils')
 
 describe('Redis Integration Tests', () => {
   let redisProvider
   let chatHistoryService
+  const hybridInstances = []
 
   beforeAll(async () => {
     // Only run Redis tests if REDIS_URL is configured
     if (!config.REDIS_URL) {
-      console.log('Skipping Redis tests - REDIS_URL not configured')
+      logger.info('Skipping Redis tests - REDIS_URL not configured')
       return
     }
 
@@ -27,6 +31,10 @@ describe('Redis Integration Tests', () => {
   afterAll(async () => {
     if (redisProvider) {
       await redisProvider.disconnect()
+    }
+    // Disconnect all HybridStorageProvider Redis clients
+    for (const hybrid of hybridInstances) {
+      await hybrid.disconnect()
     }
   })
 
@@ -46,14 +54,15 @@ describe('Redis Integration Tests', () => {
 
   afterEach(() => {
     // Clear hybrid storage cache after each test
-    const hybrid = new HybridStorageProvider(config);
-    hybrid.clearCache();
-  });
+    const hybrid = new HybridStorageProvider(config)
+    hybrid.clearCache()
+    hybridInstances.push(hybrid)
+  })
 
   describe('Redis Connection', () => {
     it('should connect to Redis successfully', async () => {
       if (!config.REDIS_URL) {
-        console.log('Skipping - REDIS_URL not configured')
+        logger.info('Skipping - REDIS_URL not configured')
         return
       }
 
@@ -62,7 +71,7 @@ describe('Redis Integration Tests', () => {
 
     it('should perform health check successfully', async () => {
       if (!config.REDIS_URL) {
-        console.log('Skipping - REDIS_URL not configured')
+        logger.info('Skipping - REDIS_URL not configured')
         return
       }
 
@@ -74,7 +83,7 @@ describe('Redis Integration Tests', () => {
   describe('Redis Basic Operations', () => {
     it('should set and get values', async () => {
       if (!config.REDIS_URL) {
-        console.log('Skipping - REDIS_URL not configured')
+        logger.info('Skipping - REDIS_URL not configured')
         return
       }
 
@@ -95,7 +104,7 @@ describe('Redis Integration Tests', () => {
 
     it('should handle expiration', async () => {
       if (!config.REDIS_URL) {
-        console.log('Skipping - REDIS_URL not configured')
+        logger.info('Skipping - REDIS_URL not configured')
         return
       }
 
@@ -110,7 +119,7 @@ describe('Redis Integration Tests', () => {
       expect(result).toBe(testValue)
 
       // Wait for expiration
-      await new Promise(resolve => setTimeout(resolve, 1100))
+      await new Promise(resolve => safeSetTimeout(resolve, 1500))
 
       // Should not exist after expiration
       result = await redisProvider.get(testKey)
@@ -121,7 +130,7 @@ describe('Redis Integration Tests', () => {
   describe('ChatHistoryService with Redis', () => {
     it('should save and retrieve chat history', async () => {
       if (!config.REDIS_URL) {
-        console.log('Skipping - REDIS_URL not configured')
+        logger.info('Skipping - REDIS_URL not configured')
         return
       }
 
@@ -143,7 +152,7 @@ describe('Redis Integration Tests', () => {
 
     it('should handle empty history', async () => {
       if (!config.REDIS_URL) {
-        console.log('Skipping - REDIS_URL not configured')
+        logger.info('Skipping - REDIS_URL not configured')
         return
       }
 
@@ -156,7 +165,7 @@ describe('Redis Integration Tests', () => {
 
     it('should truncate history correctly', async () => {
       if (!config.REDIS_URL) {
-        console.log('Skipping - REDIS_URL not configured')
+        logger.info('Skipping - REDIS_URL not configured')
         return
       }
 
@@ -179,7 +188,7 @@ describe('Redis Integration Tests', () => {
 
     it('should perform health check', async () => {
       if (!config.REDIS_URL) {
-        console.log('Skipping - REDIS_URL not configured')
+        logger.info('Skipping - REDIS_URL not configured')
         return
       }
 
@@ -191,7 +200,7 @@ describe('Redis Integration Tests', () => {
   describe('Error Handling', () => {
     it('should handle Redis connection errors gracefully', async () => {
       if (!config.REDIS_URL) {
-        console.log('Skipping - REDIS_URL not configured')
+        logger.info('Skipping - REDIS_URL not configured')
         return
       }
 
@@ -202,7 +211,7 @@ describe('Redis Integration Tests', () => {
 
     it('should handle JSON parsing errors', async () => {
       if (!config.REDIS_URL) {
-        console.log('Skipping - REDIS_URL not configured')
+        logger.info('Skipping - REDIS_URL not configured')
         return
       }
 

@@ -1,4 +1,4 @@
-const logger = require('../utils/logger')
+const logger = require('../utils/logger');
 const config = require('../config/config')
 const PerformanceTracer = require('../utils/performanceTracer')
 const { sendMessage, splitMessageOnWordBoundary } = require('./messagingService')
@@ -6,7 +6,7 @@ const FallbackGptService = require('./fallbackGptService')
 const SmartHistoryManager = require('../services/historyManager')
 
 class MessageQueue {
-  constructor(config, { historyManager, gptService, sendMessageFn } = {}) {
+  constructor (config, { historyManager, gptService, sendMessageFn } = {}) {
     this.queue = []
     this.processing = false
     this.historyManager = historyManager || new SmartHistoryManager(config)
@@ -18,13 +18,13 @@ class MessageQueue {
     this.tracer = new PerformanceTracer()
   }
 
-  async enqueue(message) {
+  async enqueue (message) {
     logger.info(`[QUEUE] Enqueuing message from ${message.from}`)
     this.queue.push(message)
     this.processNext()
   }
 
-  async processNext() {
+  async processNext () {
     if (this.processing || this.queue.length === 0) return
     this.processing = true
     const message = this.queue.shift()
@@ -54,7 +54,7 @@ class MessageQueue {
     }
   }
 
-  async streamResponse(to, response) {
+  async streamResponse (to, response) {
     logger.info(`[QUEUE] Streaming response to ${to}`)
     const chunks = splitMessageOnWordBoundary(response, 100)
     for (let i = 0; i < chunks.length; i++) {
@@ -69,12 +69,12 @@ class MessageQueue {
     }
   }
 
-  async processMessage(message) {
+  async processMessage (message) {
     const startTime = Date.now()
     const messageId = `${message.from}-${Date.now()}`
-    
+
     logger.info(`[Queue] Processing message ${messageId} from ${message.from}`)
-    
+
     try {
       // Check if we can process immediately
       if (this.activeProcesses >= this.maxConcurrent) {
@@ -102,18 +102,17 @@ class MessageQueue {
 
       const totalDuration = Date.now() - startTime
       logger.info(`🎉 [Queue] Message ${messageId} completed in ${totalDuration}ms`)
-      
+
       this.tracer.record('message_processing', totalDuration, {
         messageId,
         userId: message.from,
         parallelDuration,
         streamDuration
       })
-
     } catch (err) {
       logger.error(`❌ [Queue] Failed to process message ${messageId}: ${err.message}`)
       await this.sendErrorResponse(message.to, err.message)
-      
+
       this.tracer.record('message_error', Date.now() - startTime, {
         messageId,
         userId: message.from,
@@ -125,42 +124,42 @@ class MessageQueue {
     }
   }
 
-  async queueMessage(message, messageId) {
+  async queueMessage (message, messageId) {
     logger.info(`📋 [Queue] Queuing message ${messageId}`)
-    
+
     // For now, process immediately (can be enhanced with Redis queue later)
     return this.processMessage(message)
   }
 
-  async getContext(userId) {
+  async getContext (userId) {
     const chatHistoryService = require('./chatHistoryService')
     const storageProvider = require('./storage')
     const historyService = new chatHistoryService(storageProvider)
-    
+
     return await historyService.getUserHistory(userId)
   }
 
-  async getGptResponse(message, userId) {
+  async getGptResponse (message, userId) {
     const gptService = new FallbackGptService()
-    
+
     const messages = await this.prepareMessagesForGpt(userId, message)
     return await gptService.getResponse(messages)
   }
 
-  async prepareMessagesForGpt(userId, currentMessage) {
+  async prepareMessagesForGpt (userId, currentMessage) {
     const chatHistoryService = require('./chatHistoryService')
     const storageProvider = require('./storage')
     const historyService = new chatHistoryService(storageProvider)
-    
+
     return await historyService.prepareMessagesForGpt(userId, currentMessage)
   }
 
-  async sendErrorResponse(to, error) {
-    const errorMessage = "😕 אופס! משהו השתבש. נסה שוב עוד רגע."
+  async sendErrorResponse (to, error) {
+    const errorMessage = '😕 אופס! משהו השתבש. נסה שוב עוד רגע.'
     await this.sendMessage({ to, body: errorMessage })
   }
 
-  getQueueStatus() {
+  getQueueStatus () {
     return {
       activeProcesses: this.activeProcesses,
       maxConcurrent: this.maxConcurrent,
@@ -170,4 +169,4 @@ class MessageQueue {
   }
 }
 
-module.exports = MessageQueue 
+module.exports = MessageQueue

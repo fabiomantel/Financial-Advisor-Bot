@@ -1,10 +1,11 @@
 const Redis = require('redis')
 const config = require('../config/config')
+const logger = require('../utils/logger');
 
-async function testRedisCloudConnection() {
-  console.log('Testing Redis Cloud connection...')
-  console.log('Connection URL:', config.REDIS_URL.replace(/\/\/.*@/, '//***:***@')) // Hide password in logs
-  
+async function testRedisCloudConnection () {
+  logger.info('Testing Redis Cloud connection...')
+  logger.info('Connection URL:', config.REDIS_URL.replace(/\/\/.*@/, '//***:***@')) // Hide password in logs
+
   const client = Redis.createClient({
     url: config.REDIS_URL,
     socket: {
@@ -14,49 +15,48 @@ async function testRedisCloudConnection() {
   })
 
   client.on('error', (err) => {
-    console.error('Redis connection error:', err.message)
+    logger.error('Redis connection error:', err.message)
   })
 
   client.on('connect', () => {
-    console.log('✅ Redis Cloud connection established successfully!')
+    logger.info('✅ Redis Cloud connection established successfully!')
   })
 
   client.on('ready', () => {
-    console.log('✅ Redis Cloud client ready')
+    logger.info('✅ Redis Cloud client ready')
   })
 
   try {
     await client.connect()
-    
+
     // Test basic operations
-    console.log('Testing basic operations...')
-    
+    logger.info('Testing basic operations...')
+
     // SET operation
     await client.set('test_key', 'test_value')
-    console.log('✅ SET operation successful')
-    
+    logger.info('✅ SET operation successful')
+
     // GET operation
     const value = await client.get('test_key')
-    console.log('✅ GET operation successful, retrieved:', value)
-    
+    logger.info('✅ GET operation successful, retrieved:', value)
+
     // Test with expiration
     await client.set('expiry_test', 'will_expire', { EX: 5 })
-    console.log('✅ SET with expiration successful')
-    
+    logger.info('✅ SET with expiration successful')
+
     // Clean up
     await client.del('test_key', 'expiry_test')
-    console.log('✅ Cleanup successful')
-    
-    console.log('🎉 All Redis Cloud tests passed!')
-    
+    logger.info('✅ Cleanup successful')
+
+    logger.info('🎉 All Redis Cloud tests passed!')
   } catch (err) {
-    console.error('❌ Redis Cloud test failed:', err.message)
-    console.error('Please check your connection string and credentials')
+    logger.error('❌ Redis Cloud test failed:', err.message)
+    logger.error('Please check your connection string and credentials')
   } finally {
     await client.quit()
-    console.log('Redis connection closed')
+    logger.info('Redis connection closed')
   }
 }
 
 // Run the test
-testRedisCloudConnection().catch(console.error) 
+testRedisCloudConnection().catch(console.error)

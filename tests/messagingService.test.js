@@ -1,4 +1,5 @@
 const { splitMessageOnWordBoundary } = require('../services/messagingService')
+const { safeSetTimeout } = require('./testUtils')
 
 describe('splitMessageOnWordBoundary', () => {
   const MAX = 10

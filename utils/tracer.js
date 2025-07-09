@@ -1,44 +1,44 @@
-const logger = require('./logger')
+const logger = require('./logger');
 
 class PerformanceTracer {
-  constructor() {
+  constructor () {
     this.marks = new Map()
     this.measures = new Map()
     logger.info('PerformanceTracer initialized')
   }
-  
-  mark(name) {
+
+  mark (name) {
     this.marks.set(name, Date.now())
     logger.debug(`📍 [Tracer] Performance mark: ${name}`)
   }
-  
-  measure(name, startMark, endMark) {
+
+  measure (name, startMark, endMark) {
     const start = this.marks.get(startMark)
     const end = this.marks.get(endMark)
-    
+
     if (start && end) {
       const duration = end - start
       this.measures.set(name, duration)
       logger.info(`📊 [Tracer] Performance measure: ${name} = ${duration}ms`)
       return duration
     }
-    
+
     logger.warn(`⚠️ [Tracer] Cannot measure ${name}: marks not found`)
     return null
   }
-  
-  getMeasures() {
+
+  getMeasures () {
     return Object.fromEntries(this.measures)
   }
-  
-  clear() {
+
+  clear () {
     this.marks.clear()
     this.measures.clear()
     logger.debug('[Tracer] Cleared all marks and measures')
   }
-  
+
   // Helper method to measure a function execution
-  async measureFunction(name, fn) {
+  async measureFunction (name, fn) {
     const startTime = Date.now()
     try {
       const result = await fn()
@@ -54,4 +54,4 @@ class PerformanceTracer {
   }
 }
 
-module.exports = PerformanceTracer 
+module.exports = PerformanceTracer

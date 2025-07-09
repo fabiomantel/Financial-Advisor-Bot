@@ -1,7 +1,7 @@
 const axios = require('axios')
-const logger = require('../utils/logger')
+const logger = require('../utils/logger');
 
-async function testEnhancedEndpoint() {
+async function testEnhancedEndpoint () {
   const baseUrl = process.env.BASE_URL || 'http://localhost:3000'
   const testMessage = {
     From: '+1234567890',
@@ -15,7 +15,7 @@ async function testEnhancedEndpoint() {
 
   try {
     const startTime = Date.now()
-    
+
     const response = await axios.post(`${baseUrl}/whatsapp/enhanced`, testMessage, {
       headers: {
         'Content-Type': 'application/json'
@@ -24,10 +24,10 @@ async function testEnhancedEndpoint() {
     })
 
     const duration = Date.now() - startTime
-    
+
     logger.info(`✅ Enhanced endpoint test completed in ${duration}ms`)
     logger.info(`📊 Response status: ${response.status}`)
-    logger.info(`📄 Response data:`, response.data)
+    logger.info('📄 Response data:', response.data)
     // Check for immediate acknowledgment (should be status: 'success' or 'processing')
     if (response.data && (response.data.status === 'success' || response.data.status === 'processing')) {
       logger.info('✅ Immediate acknowledgment response received as expected.')
@@ -37,17 +37,16 @@ async function testEnhancedEndpoint() {
 
     // Test stats endpoint
     const statsResponse = await axios.get(`${baseUrl}/stats/enhanced`)
-    logger.info(`📈 Enhanced stats:`, statsResponse.data)
+    logger.info('📈 Enhanced stats:', statsResponse.data)
 
     // Test health endpoint
     const healthResponse = await axios.get(`${baseUrl}/health/enhanced`)
-    logger.info(`🏥 Enhanced health:`, healthResponse.data)
-
+    logger.info('🏥 Enhanced health:', healthResponse.data)
   } catch (error) {
     logger.error(`❌ Enhanced endpoint test failed: ${error.message}`)
     if (error.response) {
       logger.error(`📊 Response status: ${error.response.status}`)
-      logger.error(`📄 Response data:`, error.response.data)
+      logger.error('📄 Response data:', error.response.data)
     }
   }
 }
@@ -65,4 +64,4 @@ if (require.main === module) {
     })
 }
 
-module.exports = { testEnhancedEndpoint } 
+module.exports = { testEnhancedEndpoint }
