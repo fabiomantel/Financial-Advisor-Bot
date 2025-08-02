@@ -274,7 +274,13 @@ npx jest tests/enhancedWhatsappController.test.js
 
 ---
 
+## 📊 Project Overview & Presentation
+
 <iframe src="https://gamma.app/embed/kh1eizo8b4d1qoa" style="width: 700px; max-width: 100%; height: 450px" allow="fullscreen" title="Financial Advisor Bot: Enterprise-Grade AI WhatsApp Assistant"></iframe>
+
+*This presentation explains the technical complexity and business value of our Financial Advisor Bot system, designed for stakeholders and technical reviews.*
+
+---
 
 ## License
 
