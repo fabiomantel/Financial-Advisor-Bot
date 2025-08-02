@@ -274,6 +274,14 @@ npx jest tests/enhancedWhatsappController.test.js
 
 ---
 
+## Project Overview & Presentation
+
+[<img src="https://img.shields.io/badge/View_Presentation-007ACC?style=for-the-badge&logo=gamma&logoColor=white" alt="View Presentation">](https://gamma.app/embed/kh1eizo8b4d1qoa)
+
+*This presentation explains the technical complexity and business value of our Financial Advisor Bot system.*
+
+---
+
 ## License
 
 MIT License - see LICENSE file for details. 
