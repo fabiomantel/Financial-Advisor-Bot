@@ -7,14 +7,14 @@ A modern WhatsApp chatbot for financial advisory, powered by OpenAI GPT-4o, with
 ## Features
 
 - **WhatsApp Integration** via Twilio
-- **AI-Powered Financial Advice** (OpenAI GPT-4o, fallback to GPT-3.5)
+- **AI-Powered Financial Advice** (OpenAI GPT-4o, intelligent fallback to GPT-3.5)
 - **Real-Time Streaming & Chunking** for WhatsApp message delivery
 - **Unified, Sentence-Aware Chunking** (code/list/formatting safe, Hebrew/mixed language aware)
 - **Persistent Chat History** with hybrid (memory+Redis) storage
 - **Rolling Context Window** and **Dynamic Summarization**
-- **Response Caching** for fast repeated answers
-- **Parallel Processing Pipeline** for low-latency
-- **Comprehensive Logging & Performance Monitoring**
+- **Response Caching** for fast repeated answers with LRU eviction
+- **Intelligent Fallback System** with timeout-based model switching
+- **Comprehensive Logging & Performance Monitoring** with detailed tracing
 - **Graceful Error Recovery** and fallback flows
 - **Extensive Test Coverage** (unit, integration, streaming, chunking)
 - **Dev-Only Debug Dashboard**: Visualize message flow, context, GPT input/output, and Redis saves
@@ -44,25 +44,28 @@ flowchart TD
     H["Load user context from Redis"]
     H2["If not found: initialize new context"]
 
-    %% GPT
+    %% GPT with Fallback
     I["Build GPT context (system prompt, summary, recent messages, user message)"]
-    J["Call OpenAI API (streaming)"]
-    J2{"GPT error?"}
-    K["Log & send error reply (GPT failure)"]
+    J["Call OpenAI API (streaming) - GPT-4o"]
+    J2{"GPT-4o error/timeout?"}
+    J3["Fallback to GPT-3.5"]
+    K["Log & send error reply (both models failed)"]
 
     %% Chunking & Sending
     L["Buffer & chunk GPT response (sentence/word/code-aware)"]
     M["Send each chunk as WhatsApp message"]
 
-    %% Context Update
+    %% Async Context Update
     N["Update context: add message pair, increment counter"]
     O{"Summary update needed?"}
-    P["Generate new summary (if needed)"]
+    P["Generate new summary (async)"]
     Q["Save updated context & summary to Redis (async)"]
 
-    %% Logging/Debug
+    %% Performance & Caching
     R["Log actions, timings, errors"]
     S["Debug dashboard (dev-only)"]
+    T2["Performance tracing & metrics"]
+    U["Response caching (LRU)"]
 
     %% Flow
     T --> A
@@ -79,10 +82,12 @@ flowchart TD
     H2 --> I
     I --> J
     J --> J2
-    J2 -- "Yes" --> K
+    J2 -- "Yes" --> J3
+    J3 --> J2
+    J2 -- "Both Failed" --> K
     K --> R
     K --> S
-    J2 -- "No" --> L
+    J2 -- "Success" --> L
     L --> M
     M --> N
     N --> O
@@ -91,16 +96,20 @@ flowchart TD
     O -- "No" --> Q
     Q --> R
     Q --> S
+    Q --> T2
+    M --> U
 
     %% Styling
     classDef user fill:#e3e3e3,stroke:#333,stroke-width:2px,color:#222;
     classDef api fill:#fff,stroke:#333,stroke-width:2px,color:#222;
     classDef redis fill:#d0e6f7,stroke:#333,stroke-width:2px,color:#222;
     classDef gpt fill:#ffe9b3,stroke:#333,stroke-width:2px,color:#222;
+    classDef async fill:#f0f8ff,stroke:#333,stroke-width:2px,color:#222;
     class A user;
-    class B,C,D,E,F,G,H,H2,I,J,J2,K,L,M,N,O,P,Q,R,S api;
+    class B,C,D,E,F,G,H,H2,I,J,J2,J3,K,L,M,N,O,R,S,T2,U api;
     class H,H2,Q redis;
-    class J,J2,K gpt;
+    class J,J2,J3,K gpt;
+    class P,Q async;
 ```
 
 ---
@@ -115,10 +124,11 @@ flowchart TD
 - **What it shows:**
   - Incoming WhatsApp message
   - Context sent to GPT
-  - GPT response
+  - GPT response (including fallback attempts)
   - What is saved to Redis
   - All steps in the flow, with timestamps
-- **Implementation:** In-memory, no new routes, no data persisted
+  - Performance metrics and error tracking
+- **Implementation:** Static HTML file served via Express, debug data injected as JavaScript
 
 ---
 
@@ -128,6 +138,8 @@ flowchart TD
 - **Summary**: Short, updated after a threshold of messages/tokens, used as background for GPT
 - **Token management**: Context is trimmed to fit within the model's token limit
 - **Streaming**: GPT responses are streamed, with idle timeout reset on each chunk
+- **Async Processing**: Context updates and summarization happen asynchronously to maintain response speed
+- **Fallback Intelligence**: Automatic model switching (GPT-4o → GPT-3.5) with timeout-based decisions
 
 ---
 
@@ -151,6 +163,30 @@ All outgoing WhatsApp messages use a single robust chunking function:
   - Handles null/empty/non-string input gracefully
   - Logs all chunking actions/errors
 - **All controllers, queue, pipeline, and streaming flows use this function.**
+
+---
+
+## Intelligent Fallback System
+
+The system includes sophisticated fallback mechanisms for reliability:
+
+- **Primary Model**: GPT-4o for highest quality responses
+- **Fallback Model**: GPT-3.5-turbo for faster, reliable responses
+- **Timeout-Based Switching**: Configurable timeout (default: 5 seconds) before fallback
+- **Automatic Recovery**: Seamless switching without user interruption
+- **Error Tracking**: Detailed logging of fallback events and performance metrics
+
+---
+
+## Response Caching
+
+Performance optimization through intelligent caching:
+
+- **LRU Cache**: Least Recently Used eviction policy
+- **Configurable Size**: Default 500 entries, customizable via `CACHE_MAX_SIZE`
+- **TTL Support**: Automatic expiration (default: 5 minutes) via `CACHE_TTL`
+- **Automatic Cleanup**: Background cleanup of expired entries
+- **Cache Hit Logging**: Detailed logging of cache performance
 
 ---
 
@@ -213,6 +249,12 @@ const storage = new HybridStorageProvider(config)
 | `STORAGE_TYPE` | `redis`, `memory`, `hybrid` | No | `redis` |
 | `LOG_LEVEL` | Logging level | No | `info` |
 | `CHUNK_SEND_DELAY_MS` | Delay between chunk sends (ms) | No | `250` |
+| `FALLBACK_TIMEOUT` | GPT timeout before fallback (ms) | No | `5000` |
+| `CACHE_MAX_SIZE` | Response cache max entries | No | `500` |
+| `CACHE_TTL` | Response cache TTL (ms) | No | `300000` |
+| `CONTEXT_RECENT_PAIRS` | Recent message pairs to keep | No | `3` |
+| `CONTEXT_SUMMARY_TRIGGER` | Messages before summary update | No | `10` |
+| `CONTEXT_MAX_TOKEN_COUNT` | Max tokens in context | No | `800` |
 
 **For secure Redis:**
 - `REDIS_TLS_CA`, `REDIS_TLS_CERT`, `REDIS_TLS_KEY`, `REDIS_TLS_REJECT_UNAUTHORIZED`
@@ -249,8 +291,10 @@ npx jest tests/enhancedWhatsappController.test.js
 
 - **Winston logger**: All actions, errors, chunking, and performance are logged
 - **PerformanceTracer**: Tracks durations, errors, and success rates for all flows
+- **Debug Store**: In-memory debug data for development dashboard
 - **/stats/enhanced**: Exposes stats for monitoring
 - **Health checks**: `/health/enhanced` endpoint
+- **Response Caching**: LRU cache with automatic cleanup and TTL
 - **Recommended:** Export metrics to Prometheus/Grafana for production
 
 ---
@@ -259,9 +303,11 @@ npx jest tests/enhancedWhatsappController.test.js
 
 - **Immediate WhatsApp ack** (even if processing fails)
 - **Retries** for chunk send, fallback to error message if all fail
-- **Fallback to GPT-3.5** if GPT-4o fails/times out
+- **Intelligent Fallback System**: Automatic GPT-4o → GPT-3.5 switching with configurable timeout
 - **Graceful degradation**: If Redis is down, uses memory fallback
-- **All errors logged with context**
+- **Response Caching**: LRU cache with TTL for repeated questions
+- **Performance Tracing**: Detailed timing and error tracking for all operations
+- **All errors logged with context and stack traces**
 
 ---
 
@@ -274,11 +320,13 @@ npx jest tests/enhancedWhatsappController.test.js
 
 ---
 
-## Project Overview & Presentation
+## 📊 Project Overview & Presentation
 
 [<img src="https://img.shields.io/badge/View_Presentation-007ACC?style=for-the-badge&logo=gamma&logoColor=white" alt="View Presentation">](https://gamma.app/embed/kh1eizo8b4d1qoa)
 
-*This presentation explains the technical complexity and business value of our Financial Advisor Bot system.*
+**[📋 View Full Project Presentation →](https://gamma.app/embed/kh1eizo8b4d1qoa)**
+
+*This presentation explains the technical complexity and business value of our Financial Advisor Bot system, designed for stakeholders and technical reviews.*
 
 ---
 

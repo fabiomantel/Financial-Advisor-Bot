@@ -1,5 +1,6 @@
 const { getGptReplyStream } = require('./openaiService')
 const logger = require('../utils/logger');
+const debugStore = require('../utils/debugStore');
 
 class FallbackGptService {
   constructor () {
@@ -22,6 +23,12 @@ class FallbackGptService {
     } catch (err) {
       const duration = Date.now() - startTime
       logger.warn(`⚠️ [Fallback] Primary model failed after ${duration}ms: ${err.message}`)
+      debugStore.add({
+        type: 'primary_model_error',
+        error: err.message,
+        model: this.primaryModel,
+        duration: duration
+      });
 
       // Fallback to faster model
       logger.info(`🔄 [Fallback] Falling back to ${this.fallbackModel}`)
@@ -32,6 +39,13 @@ class FallbackGptService {
         return fallbackResponse
       } catch (fallbackErr) {
         logger.error(`💥 [Fallback] Fallback model also failed: ${fallbackErr.message}`)
+        debugStore.add({
+          type: 'fallback_error',
+          error: fallbackErr.message,
+          primaryModel: this.primaryModel,
+          fallbackModel: this.fallbackModel,
+          duration: Date.now() - startTime
+        });
         throw fallbackErr
       }
     }

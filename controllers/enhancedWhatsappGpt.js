@@ -74,6 +74,13 @@ async function processMessageWithGpt(message, userId, onFirstChunk, debugReqId, 
   } catch (err) {
     logger.error(`[ERROR] GPT processing failed for user ${userId}: ${err.message}`);
     logger.error(`[ERROR] Stack: ${err.stack}`);
+    debugStore.add({
+      type: 'gpt_error',
+      userId,
+      error: err.message,
+      stack: err.stack,
+      meta: { reqId: debugReqId }
+    });
     return require('../config/hebrew').ERROR_REPLY;
   }
 }

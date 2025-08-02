@@ -23,7 +23,7 @@ module.exports = {
   REDIS_URL: process.env.REDIS_URL,
   STORAGE_TYPE: process.env.STORAGE_TYPE || 'redis',
   // Context management config
-  CONTEXT_RECENT_PAIRS: parseInt(process.env.CONTEXT_RECENT_PAIRS, 10) || 5,
+  CONTEXT_RECENT_PAIRS: parseInt(process.env.CONTEXT_RECENT_PAIRS, 10) || 3,
   CONTEXT_SUMMARY_TRIGGER: parseInt(process.env.CONTEXT_SUMMARY_TRIGGER, 10) || 10,
   CONTEXT_MIN_MSG_LENGTH: parseInt(process.env.CONTEXT_MIN_MSG_LENGTH, 10) || 50,
   CONTEXT_FILTER_PHRASES: hebrew.CONTEXT_FILTER_PHRASES,
